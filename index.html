@@ -1435,9 +1435,13 @@ function parseScript(raw) {
 function loadVoices() {
   return new Promise(resolve => {
     const attempt = () => {
-      const all = window.speechSynthesis.getVoices();
-      const fr  = all.filter(v => v.lang.startsWith('fr'));
-      voices = fr.length ? fr : all;
+      const all     = window.speechSynthesis.getVoices();
+      const fr      = all.filter(v => v.lang.startsWith('fr'));
+      const pool    = fr.length ? fr : all;
+      // Voix locales d'abord (fiables), voix réseau en dernier recours
+      const local   = pool.filter(v => v.localService);
+      const network = pool.filter(v => !v.localService);
+      voices = local.length ? [...local, ...network] : pool;
       resolve();
     };
     if (window.speechSynthesis.getVoices().length > 0) {
@@ -1612,7 +1616,13 @@ function speak(text, voice, onDone) {
     };
     utt.onerror = e => {
       if (myGen !== speakGen) return;
-      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        // Ne pas avancer si c'est volontaire (cancel() appelé par la prochaine réplique)
+        // mais avancer après 200ms si personne d'autre n'a pris la main
+        const gen = myGen;
+        setTimeout(() => { if (speakGen === gen && !skipFlag && onDone) onDone(); }, 200);
+        return;
+      }
       console.warn('TTS error:', e.error);
       if (!skipFlag && onDone) onDone();
     };
