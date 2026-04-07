@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Texte !</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2308080e'/%3E%3C!-- Masque comédie (sourire) --%3E%3Cellipse cx='10' cy='14' rx='7' ry='8' fill='%23d4a843' opacity='.95'/%3E%3Cellipse cx='10' cy='14' rx='5.5' ry='6.5' fill='%2308080e'/%3E%3Ccircle cx='8' cy='12' r='1.2' fill='%23d4a843'/%3E%3Ccircle cx='12' cy='12' r='1.2' fill='%23d4a843'/%3E%3Cpath d='M7.5 16.5 Q10 19 12.5 16.5' stroke='%23d4a843' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3Crect x='9.5' y='5.5' width='1.2' height='2' rx='.6' fill='%23d4a843'/%3E%3C!-- Masque tragédie (larme) --%3E%3Cellipse cx='22' cy='17' rx='7' ry='8' fill='%23ede5d8' opacity='.85'/%3E%3Cellipse cx='22' cy='17' rx='5.5' ry='6.5' fill='%2308080e'/%3E%3Ccircle cx='20' cy='15' r='1.2' fill='%23ede5d8'/%3E%3Ccircle cx='24' cy='15' r='1.2' fill='%23ede5d8'/%3E%3Cpath d='M19.5 19.5 Q22 17 24.5 19.5' stroke='%23ede5d8' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3Cellipse cx='20.5' cy='16.5' rx='.7' ry='1.4' fill='%2352d87a' opacity='.7'/%3E%3C/svg%3E">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #08080e;
+  --surface: #10101e;
+  --surface2: #181828;
+  --gold: #d4a843;
+  --gold-light: #e8c268;
+  --gold-dim: #251c06;
+  --text: #ede5d8;
+  --text-muted: #7a7088;
+  --blue: #5898ff;
+  --blue-dim: #161f3e;
+  --green: #52d87a;
+  --green-dim: #0b2e18;
+  --red: #ff5858;
+  --red-dim: #330e0e;
+  --yellow: #ffbb30;
+  --yellow-dim: #2a1c00;
+  --radius: 12px;
+  --transition: 0.28s ease;
+}
+
+body {
+  font-family: 'Georgia', serif;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse 140% 55% at 50% -5%, rgba(212,168,67,0.09) 0%, transparent 55%);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px 70px;
+}
+
+h1 {
+  font-size: 3.6rem;
+  color: var(--gold);
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 8px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 80px rgba(212,168,67,0.45), 0 2px 0 rgba(0,0,0,0.9);
+  line-height: 1;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+  font-size: 0.85rem;
+  margin-bottom: 44px;
+  letter-spacing: 2px;
+}
+
+/* ===== SETUP SCREEN ===== */
+#setupScreen {
+  width: 100%;
+  max-width: 680px;
+  background: rgba(16,16,30,0.85);
+  border: 1px solid rgba(212,168,67,0.13);
+  border-radius: 18px;
+  padding: 36px 32px;
+  box-shadow: 0 12px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.form-group { margin-bottom: 20px; }
+
+label {
+  display: block;
+  color: var(--gold);
+  font-weight: bold;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+textarea, input[type="text"], [contenteditable] {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  transition: border-color var(--transition);
+  resize: vertical;
+}
+
+textarea:focus, input[type="text"]:focus, [contenteditable]:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+textarea::placeholder { color: #555; }
+
+.editor-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--surface2);
+  border: 1px solid #333;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.editor-toolbar button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 2px 9px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.editor-toolbar button:hover  { background: #2a2a3a; border-color: #444; color: var(--text); }
+.editor-toolbar button.active { background: #1a1a3a; border-color: #6677cc; color: #8899ff; }
+.editor-toolbar .tb-sep { width: 1px; background: #333; margin: 2px 4px; }
+
+#scriptInput[contenteditable] {
+  min-height: 220px;
+  max-height: 420px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.7;
+  cursor: text;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+#scriptInput[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #555;
+  pointer-events: none;
+}
+#scriptInput[contenteditable] em, #scriptInput[contenteditable] i {
+  color: #8899cc;
+  font-style: italic;
+}
+
+.char-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.char-input-row input { flex: 1; }
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  padding: 12px 22px;
+  font-family: inherit;
+  transition: all var(--transition);
+  font-weight: bold;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+  color: #08080e;
+  width: 100%;
+  font-size: 16px;
+  padding: 15px;
+  margin-top: 8px;
+  letter-spacing: 1.5px;
+  box-shadow: 0 4px 28px rgba(212,168,67,0.28);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 36px rgba(212,168,67,0.42);
+}
+.btn-primary:active { transform: translateY(0); box-shadow: none; }
+
+/* ===== PREVIEW SCREEN ===== */
+#previewScreen {
+  width: 100%;
+  max-width: 680px;
+  background: rgba(16,16,30,0.85);
+  border: 1px solid rgba(212,168,67,0.15);
+  border-radius: 14px;
+  padding: 28px 24px;
+  display: none;
+}
+.preview-intro {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 480px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding-right: 4px;
+}
+.pv-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+}
+.pv-item:hover { background: #16162a; }
+.pv-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.pv-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 2px;
+  transition: all 0.15s;
+}
+.pv-badge.type-replica    { background: #2a1020; color: #ff9ab3; border: 1px solid #aa4060; }
+.pv-badge.type-direction  { background: #101828; color: #7090cc; border: 1px solid #4060aa; }
+.pv-badge.type-character  { background: #1a1a08; color: var(--gold); border: 1px solid var(--gold); }
+.pv-badge:hover { opacity: 0.75; }
+#pvToolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.pvtb-label { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.pvtb-btn {
+  font-size: 11px; font-weight: bold; letter-spacing: .5px;
+  padding: 4px 12px; border-radius: 20px; cursor: pointer;
+  border: 1px solid; transition: opacity 0.15s;
+}
+.pvtb-btn:hover { opacity: 0.8; }
+.pvtb-text   { background: #2a1020; color: #ff9ab3; border-color: #aa4060; }
+.pvtb-dir    { background: #101828; color: #7090cc; border-color: #4060aa; }
+.pvtb-char   { background: #1a1a08; color: var(--gold); border-color: var(--gold); }
+.pvtb-cancel { background: none; color: #666; border-color: #444; font-weight: normal; }
+
+.pv-word {
+  display: inline;
+  border-radius: 3px;
+  padding: 1px 2px;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+.pv-word.wt-replica    { color: var(--text); }
+.pv-word.wt-direction  { color: #7090cc; font-style: italic; background: rgba(64,96,170,0.12); }
+.pv-word.wt-character  { color: var(--gold); font-weight: bold; }
+.pv-word.wt-selected   { background: rgba(212,168,67,0.3) !important; outline: 1px solid var(--gold); }
+.pv-word:hover { background: rgba(255,255,255,0.07); }
+.pv-controls {
+  display: flex;
+  gap: 10px;
+}
+.btn-back {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-back:hover { border-color: #555; color: var(--text); }
+
+.hint {
+  background: var(--surface);
+  border: 1px solid rgba(212,168,67,0.1);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.hint strong { color: var(--gold); }
+
+/* Label + bouton PDF sur la même ligne */
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.label-row label { margin-bottom: 0; }
+.btn-import {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  display: inline-block;
+}
+.btn-import:hover { background: #222238; color: var(--text); border-color: rgba(212,168,67,0.3); }
+
+/* Textes récents */
+.saved-section-title {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-top: 2px;
+}
+.saved-list { margin-bottom: 20px; }
+.saved-item {
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid rgba(212,168,67,0.07);
+  border-radius: 9px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  gap: 10px;
+  transition: all var(--transition);
+}
+.saved-item:hover { border-color: rgba(212,168,67,0.22); background: #1c1c2e; cursor: pointer; }
+.saved-item-info { flex: 1; }
+.saved-item-name { font-size: 13px; color: var(--text); font-weight: bold; }
+.saved-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.saved-delete {
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 15px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex: 0 0 auto;
+  line-height: 1;
+}
+.saved-delete:hover { background: var(--red-dim); color: var(--red); }
+.saved-rename {
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex: 0 0 auto;
+  line-height: 1;
+}
+.saved-rename:hover { background: var(--gold-dim); color: var(--gold); }
+.saved-item-name[contenteditable="true"] {
+  outline: none;
+  border-bottom: 1px solid var(--gold);
+  color: var(--gold);
+  cursor: text;
+}
+
+/* ===== REHEARSAL SCREEN ===== */
+#rehearsalScreen {
+  width: 100%;
+  max-width: 820px;
+  display: none;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.role-badge {
+  background: var(--surface);
+  border: 1px solid #ff9ab3;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.role-badge span { color: #ff9ab3; font-weight: bold; }
+
+/* Status indicator */
+.status-pill {
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  transition: all var(--transition);
+  min-width: 180px;
+  text-align: center;
+}
+
+.s-idle    { background: var(--surface2); color: var(--text-muted); }
+.s-speaking { background: var(--blue-dim); color: var(--blue); animation: blink 1.8s infinite; }
+.s-listening{ background: var(--green-dim); color: var(--green); animation: blink 1s infinite; }
+.s-paused  { background: var(--yellow-dim); color: var(--yellow); }
+.s-done    { background: #1a3a1a; color: #70ff90; }
+.s-error   { background: var(--red-dim); color: var(--red); }
+.s-souffleur{ background: #2a1a4a; color: #c090ff; animation: blink 1.5s infinite; }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.55} }
+
+/* Progress */
+.progress-wrap { margin-bottom: 16px; }
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+.progress-track {
+  height: 4px;
+  background: #2a2a3a;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* Script */
+#scriptContainer {
+  background: var(--surface);
+  border: 1px solid #2a2a3a;
+  border-radius: var(--radius);
+  padding: 16px;
+  max-height: 380px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  scroll-behavior: smooth;
+}
+
+.replica {
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  border-radius: 7px;
+  border-left: 4px solid transparent;
+  transition: all var(--transition);
+}
+
+.replica-char-name {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.replica-body { font-size: 14px; line-height: 1.65; }
+
+/* Other character replicas */
+.r-other { border-left-color: #4060aa; }
+.r-other .replica-char-name { color: var(--blue); }
+.r-other .replica-body { color: #a0b0cc; }
+
+/* Player replicas */
+.r-player { border-left-color: #aa4060; }
+.r-player .replica-char-name { color: #ff9ab3; }
+.r-player .replica-body { color: #ccaab0; }
+
+/* Active replica */
+.r-active {
+  background: #1a2a50 !important;
+  border-left-color: var(--gold) !important;
+  transform: scale(1.005);
+  box-shadow: 0 2px 16px rgba(201,168,76,.2);
+}
+.r-active .replica-char-name { color: var(--gold) !important; }
+.r-active .replica-body { color: #fff !important; }
+
+.r-active.r-listening {
+  background: #0e2a18 !important;
+  border-left-color: var(--green) !important;
+  box-shadow: 0 2px 16px rgba(76,204,112,.2);
+}
+.r-active.r-listening .replica-char-name { color: var(--green) !important; }
+/* Garder le texte du joueur flouté pendant qu'il doit le réciter */
+.r-active.r-listening.r-player .replica-body { filter: blur(5px) !important; user-select: none; }
+
+.r-done { opacity: 0.35; }
+.r-done:hover { opacity: 0.65; cursor: pointer; border-left-color: var(--gold) !important; transition: opacity 0.15s, border-left-color 0.15s; }
+
+.r-active.r-error {
+  background: #2a0e0e !important;
+  border-left-color: var(--red) !important;
+  box-shadow: 0 2px 16px rgba(255,96,96,.2);
+}
+.r-active.r-error .replica-char-name { color: var(--red) !important; }
+.r-active.r-error .replica-body { color: #ffb0b0 !important; }
+
+/* Répliques futures : flouter le texte pour éviter les spoilers */
+.r-future .replica-body { filter: blur(5px); user-select: none; transition: filter 0.4s; }
+.r-future.direction     { filter: blur(5px); user-select: none; transition: filter 0.4s; }
+
+/* Panneau d'erreur */
+#errorPanel {
+  background: #2a0e0e;
+  border: 1px solid #6a2020;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+#errorScore {
+  color: var(--red);
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.error-actions button { flex: 1; padding: 10px; font-size: 13px; min-width: 100px; }
+
+.ea-hear  { background: #3a1a1a; color: #ffaa80; border: 1px solid #6a3030; }
+.ea-hear:hover  { background: #4a2020; }
+.ea-retry { background: var(--surface2); color: #9090ff; border: 1px solid #333; }
+.ea-retry:hover { background: #2a2a5a; }
+.ea-next  { background: var(--surface2); color: var(--text-muted); border: 1px solid #333; }
+.ea-next:hover  { background: #2a2a3a; }
+
+/* Paliers de tolérance */
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.tier-option { cursor: pointer; }
+.tier-option input[type="radio"] { display: none; }
+
+.tier-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: var(--surface);
+  border: 2px solid #333;
+  border-radius: var(--radius);
+  transition: all var(--transition);
+}
+
+.tier-card strong { color: var(--text); font-size: 13px; }
+.tier-card em     { color: var(--text-muted); font-size: 11px; font-style: normal; text-align: center; }
+
+.tier-option input:checked + .tier-card {
+  border-color: var(--gold);
+  background: #28200a;
+}
+.tier-option input:checked + .tier-card strong { color: var(--gold); }
+.tier-option:hover .tier-card { border-color: #555; }
+
+/* Didascalies */
+.direction {
+  font-style: italic;
+  color: #666;
+  font-size: 13px;
+  padding: 4px 14px 4px 18px;
+  margin-bottom: 4px;
+  border-left: 3px solid #333;
+}
+
+/* Transcript box */
+#transcriptWrap {
+  background: var(--surface);
+  border: 1px solid #2a2a3a;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  min-height: 56px;
+}
+
+.transcript-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  letter-spacing: .5px;
+}
+
+#transcriptText {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #8dffb8;
+  min-height: 20px;
+}
+
+#finishBtn {
+  display: none;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: .5px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+#finishBtn:hover { background: #0f3d20; }
+#finishBtn:active { transform: scale(0.98); }
+
+#transcriptHint {
+  font-size: 11px;
+  color: #556;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-pause   { background: var(--yellow-dim); color: var(--yellow); flex: 2; }
+.btn-pause:hover { background: #55440a; }
+.btn-skip    { background: var(--surface2); color: #9090ff; flex: 1; }
+.btn-skip:hover { background: #2a2a5a; }
+.btn-restart { background: var(--surface2); color: var(--red); }
+.btn-restart:hover { background: #3a1a1a; }
+.btn-quit    { background: var(--surface2); color: var(--text-muted); }
+.btn-quit:hover { background: #2a2a2a; }
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
+.speed-label { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
+.speed-presets { display: flex; gap: 6px; flex: 1; justify-content: flex-end; }
+.speed-preset {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.speed-preset:hover { border-color: #555; color: var(--text); }
+.speed-preset.active { background: #28200a; border-color: var(--gold); color: var(--gold); font-weight: bold; }
+
+/* Error banner */
+#errorBanner {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid #6a2020;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-top: 12px;
+  display: none;
+  font-size: 14px;
+}
+
+/* Support warning */
+#supportWarn {
+  background: #2a1a00;
+  color: #ffaa40;
+  border: 1px solid #6a3a00;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: none;
+  font-size: 14px;
+}
+
+/* ===== RAPPORT ===== */
+#reportScreen {
+  width: 100%;
+  max-width: 820px;
+}
+
+.report-heading {
+  color: var(--gold);
+  text-align: center;
+  font-size: 1.4rem;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+
+.report-summary {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.report-score {
+  font-size: 3.5rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.report-sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.report-perfect {
+  color: #4ccc70;
+  font-size: 15px;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.report-title {
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #2a2a3a;
+  padding-bottom: 8px;
+}
+
+.report-block {
+  background: var(--surface);
+  border: 1px solid #2a2a3a;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.report-block-ok  { border-left: 4px solid #2a5a30; }
+.report-block-err { border-left: 4px solid var(--red); }
+
+.report-char-name {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #ff9ab3;
+  margin-bottom: 4px;
+}
+
+.report-badge {
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.report-expected {
+  font-size: 15px;
+  line-height: 1.8;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.word-missing {
+  background: rgba(255, 96, 96, 0.25);
+  color: #ff6060;
+  border-radius: 3px;
+  padding: 1px 3px;
+  text-decoration: underline wavy #ff6060;
+}
+
+.report-spoken {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  border-top: 1px solid #2a2a3a;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.report-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 28px;
+  gap: 8px;
+}
+
+/* Rapport : texte intégral */
+.report-script-dir {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 4px 0 4px 8px;
+}
+.report-script-other {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 5px;
+  border-left: 3px solid #4060aa;
+  background: rgba(64,96,170,0.07);
+}
+.report-script-other .rs-name {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 3px;
+}
+.report-script-other .rs-text {
+  color: #a0b0cc;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Scrollbar styling */
+#scriptContainer::-webkit-scrollbar { width: 6px; }
+#scriptContainer::-webkit-scrollbar-track { background: transparent; }
+#scriptContainer::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+/* ─────────────── AUTH OVERLAY ─────────────── */
+#authOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+#authOverlay.hidden { display: none; }
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  padding: 2rem 2rem 1.75rem;
+  width: min(360px, 92vw);
+  display: flex; flex-direction: column; gap: .9rem;
+}
+.auth-card h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem; color: var(--gold);
+  text-align: center; letter-spacing: .05em; margin-bottom: .1rem;
+}
+.auth-sub {
+  text-align: center; color: var(--text-muted);
+  font-size: .82rem; margin-top: -.5rem;
+}
+.auth-tabs {
+  display: flex; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--surface2);
+}
+.auth-tab {
+  flex: 1; padding: .55rem; background: var(--surface2);
+  border: none; cursor: pointer; color: var(--text-muted);
+  font-size: .85rem; transition: background .2s, color .2s;
+}
+.auth-tab.active { background: var(--gold-dim); color: var(--gold); font-weight: 600; }
+.auth-input {
+  width: 100%; padding: .65rem .85rem;
+  background: var(--surface2); border: 1px solid #2a2a3e;
+  border-radius: 8px; color: var(--text); font-size: .95rem;
+  outline: none; transition: border-color .2s;
+}
+.auth-input:focus { border-color: var(--gold-dim); }
+.auth-input::placeholder { color: var(--text-muted); }
+.auth-submit {
+  padding: .75rem; background: var(--gold); color: #111;
+  border: none; border-radius: 8px; font-weight: 700;
+  font-size: 1rem; cursor: pointer; transition: opacity .2s;
+}
+.auth-submit:hover { opacity: .88; }
+.auth-submit:disabled { opacity: .5; cursor: default; }
+.auth-msg { font-size: .82rem; min-height: 1.1em; text-align: center; }
+.auth-msg.error { color: var(--red); }
+.auth-msg.ok    { color: var(--green); }
+
+/* Header avec bouton déconnexion */
+.app-header { position: relative; display: flex; align-items: center; justify-content: center; }
+.signout-btn {
+  position: absolute; right: 0;
+  background: none; border: 1px solid var(--surface2);
+  color: var(--text-muted); border-radius: 6px;
+  padding: .3rem .6rem; font-size: .78rem; cursor: pointer;
+  transition: color .2s, border-color .2s; display: none;
+}
+.signout-btn:hover { color: var(--text); border-color: var(--gold-dim); }
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH OVERLAY ===== -->
+<div id="authOverlay">
+  <div class="auth-card">
+    <h2>Texte&thinsp;!</h2>
+    <p class="auth-sub">Le souffleur de théâtre</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('login')">Se connecter</button>
+      <button class="auth-tab" onclick="showAuthTab('register')">S'inscrire</button>
+    </div>
+    <input class="auth-input" type="email" id="authEmail" placeholder="Email" autocomplete="email"
+      onkeydown="if(event.key==='Enter')handleAuth()">
+    <input class="auth-input" type="password" id="authPassword" placeholder="Mot de passe" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')handleAuth()">
+    <div id="authMsg" class="auth-msg error"></div>
+    <button class="auth-submit" id="authSubmit" onclick="handleAuth()">Se connecter</button>
+  </div>
+</div>
+
+<div class="app-header">
+  <div>
+    <h1 onclick="goSetup()">Texte&thinsp;!</h1>
+    <p class="subtitle">Le souffleur officiel de Raph</p>
+  </div>
+  <button class="signout-btn" id="signoutBtn" onclick="signOut()">Déconnexion</button>
+</div>
+
+<!-- ===== SETUP ===== -->
+<div id="setupScreen">
+
+  <div id="supportWarn"></div>
+
+  <div class="hint">
+    <strong>Comment ça marche ?</strong><br><br>
+    1. Collez ou importez le texte de votre pièce ci-dessous.<br>
+    2. Indiquez le personnage que vous souhaitez incarner.<br>
+    3. L'application lit les répliques des autres personnages à voix haute.<br>
+    4. Quand c'est votre tour, dites votre réplique à voix haute — le site vérifie que vous l'avez bien dite.<br><br>
+    <strong>Commande micro :</strong> dites <strong>« ok texte »</strong> pour entendre votre réplique.
+  </div>
+
+  <div id="savedScripts"></div>
+
+  <div class="form-group">
+    <div class="label-row">
+      <label for="scriptInput">Texte de la pièce</label>
+      <label class="btn-import" title="Importer un PDF (texte extractible)">
+        &#128196; Importer PDF
+        <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="importPDF(this)">
+      </label>
+    </div>
+    <div class="editor-toolbar">
+      <button id="btnItalic" title="Italique (Ctrl+I)" onmousedown="applyItalic(event)"><em>I</em></button>
+      <div class="tb-sep"></div>
+      <span style="font-size:11px;color:#556;align-self:center;padding-left:2px">Sélectionnez du texte puis cliquez <em style="color:#8899cc">I</em> pour le mettre en italique</span>
+    </div>
+    <div id="scriptInput" contenteditable="true"
+      data-placeholder="Collez ici le texte de votre pièce..."></div>
+  </div>
+
+  <div class="form-group">
+    <label for="playerChar">Votre personnage</label>
+    <input type="text" id="playerChar" placeholder="Ex : Marie ou MARIE" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="form-group">
+    <label>Niveau de tolérance</label>
+    <div class="tier-grid">
+      <label class="tier-option">
+        <input type="radio" name="tier" value="strict">
+        <span class="tier-card">
+          <strong>Strict</strong>
+          <em>Mot pour mot exact</em>
+        </span>
+      </label>
+      <label class="tier-option">
+        <input type="radio" name="tier" value="normal">
+        <span class="tier-card">
+          <strong>Normal</strong>
+          <em>90 % des mots</em>
+        </span>
+      </label>
+      <label class="tier-option">
+        <input type="radio" name="tier" value="souple" checked>
+        <span class="tier-card">
+          <strong>Souple</strong>
+          <em>75 % des mots</em>
+        </span>
+      </label>
+      <label class="tier-option">
+        <input type="radio" name="tier" value="libre">
+        <span class="tier-card">
+          <strong>Libre</strong>
+          <em>60 % des mots</em>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="startRehearsal()">&#9654; Commencer la répétition</button>
+
+  <div id="errorBanner"></div>
+</div>
+
+<!-- ===== PREVIEW ===== -->
+<div id="previewScreen">
+  <p class="preview-intro">
+    Vérifiez l'interprétation du texte. <strong>Sélectionnez des mots</strong> puis choisissez leur type.
+  </p>
+  <div id="pvToolbar" style="display:none">
+    <span class="pvtb-label">Marquer la sélection comme :</span>
+    <button class="pvtb-btn pvtb-text"   onclick="applyTypeToSelection('replica')">TEXTE</button>
+    <button class="pvtb-btn pvtb-dir"    onclick="applyTypeToSelection('direction')">DIDASCALIE</button>
+    <button class="pvtb-btn pvtb-char"   onclick="applyTypeToSelection('character')">PERSONNAGE</button>
+    <button class="pvtb-btn pvtb-cancel" onclick="clearPvSelection()">✕</button>
+  </div>
+  <div class="preview-list" id="previewList"></div>
+  <div class="pv-controls">
+    <button class="btn-back" onclick="goSetup()">← Modifier le texte</button>
+    <button class="btn-primary" style="flex:1" onclick="confirmAndStart()">▶ Commencer la répétition</button>
+  </div>
+</div>
+
+<!-- ===== REHEARSAL ===== -->
+<div id="rehearsalScreen">
+
+  <div class="top-bar">
+    <div class="role-badge">Vous jouez : <span id="playerLabel"></span></div>
+    <div class="status-pill s-idle" id="statusPill">En attente…</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="progressLabel">Réplique 1 / ?</span>
+      <span id="progressPct">0 %</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div id="scriptContainer"></div>
+
+  <div id="errorPanel" style="display:none">
+    <div id="errorScore"></div>
+    <div class="error-actions" id="errorActions">
+      <button class="ea-hear"  onclick="hearCorrectLine()">&#128266; Écouter la réplique</button>
+      <button class="ea-retry" onclick="retryLine()">&#8617; Réessayer</button>
+      <button class="ea-next"  onclick="skipFromError()">&#9197; Passer quand même</button>
+    </div>
+    <div class="error-actions" id="errorPostActions" style="display:none">
+      <button class="ea-retry" onclick="goBackToPrevious()">&#8617; Recommencer depuis la réplique précédente</button>
+      <button class="ea-next"  onclick="continueAfterError()">&#8594; Continuer</button>
+    </div>
+  </div>
+
+  <div id="transcriptWrap">
+    <div class="transcript-label">Ce que vous avez dit :</div>
+    <div id="transcriptText">—</div>
+    <div id="transcriptHint"></div>
+    <button id="finishBtn" onclick="finishSpeaking()">✓ J'ai terminé ma réplique</button>
+  </div>
+
+  <div class="controls">
+    <button class="btn-pause" id="pauseBtn" onclick="togglePause()">&#9646;&#9646; Pause</button>
+    <button class="btn-skip"    onclick="skipCurrent()">&#9197; Passer</button>
+    <button class="btn-restart" onclick="restartRehearsal()">&#8617; Recommencer</button>
+    <button class="btn-quit"    onclick="goSetup()">&#10005; Quitter</button>
+  </div>
+
+  <div class="speed-control">
+    <span class="speed-label">&#9654;&#9654; Vitesse de lecture</span>
+    <div class="speed-presets">
+      <button class="speed-preset active" onclick="setRate(1.0)" data-rate="1.0">Normale</button>
+      <button class="speed-preset"        onclick="setRate(1.5)" data-rate="1.5">Rapide</button>
+      <button class="speed-preset"        onclick="setRate(2.0)" data-rate="2.0">Très rapide</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== RAPPORT ===== -->
+<div id="reportScreen" style="display:none">
+  <h2 class="report-heading">&#128203; Rapport de répétition</h2>
+  <div id="reportContent"></div>
+  <div class="report-controls">
+    <button class="btn-primary" style="max-width:300px" onclick="restartRehearsal()">&#8617; Recommencer</button>
+    <button class="btn-quit" style="margin-top:8px;width:100%;max-width:300px" onclick="goSetup()">&#10005; Changer de texte</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ─────────────────── CONFIGURATION SUPABASE ───────────────────────
+// 1. Créez un projet sur https://supabase.com
+// 2. Project Settings > API → copiez Project URL et anon key ci-dessous
+// 3. Dans l'éditeur SQL Supabase, exécutez :
+//
+//   CREATE TABLE scripts (
+//     id TEXT PRIMARY KEY,
+//     user_id UUID REFERENCES auth.users NOT NULL,
+//     title TEXT NOT NULL,
+//     player_char TEXT NOT NULL,
+//     tier TEXT NOT NULL,
+//     script TEXT NOT NULL,
+//     script_hash TEXT,
+//     last_used TIMESTAMPTZ DEFAULT now()
+//   );
+//   ALTER TABLE scripts ENABLE ROW LEVEL SECURITY;
+//   CREATE POLICY "own" ON scripts FOR ALL
+//     USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+//
+// 4. (Optionnel) Authentication > Email → désactivez "Confirm email"
+//    pour que les nouveaux comptes soient directement actifs.
+const SUPABASE_URL      = 'https://osswcgyrykeammdkssnj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zc3djZ3lyeWtlYW1tZGtzc25qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTY0ODcsImV4cCI6MjA5MTA5MjQ4N30.He0zLJBShuGkrVuJkhhCkM3w8muzIvLA5g3S4yPWDh0';
+
+// ───────────────────────────── AUTH ──────────────────────────────
+let supabase    = null;
+let currentUser = null;
+let _authMode   = 'login';
+
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return h.toString(36);
+}
+
+function initAuth() {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabase.auth.onAuthStateChange((_event, session) => {
+    currentUser = session?.user ?? null;
+    const overlay  = document.getElementById('authOverlay');
+    const signout  = document.getElementById('signoutBtn');
+    if (currentUser) {
+      overlay.classList.add('hidden');
+      signout.style.display = '';
+      renderSavedScripts();
+    } else {
+      overlay.classList.remove('hidden');
+      signout.style.display = 'none';
+    }
+  });
+}
+
+function showAuthTab(mode) {
+  _authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-tab')[mode === 'login' ? 0 : 1].classList.add('active');
+  document.getElementById('authSubmit').textContent = mode === 'login' ? 'Se connecter' : "S'inscrire";
+  setAuthMsg('', '');
+}
+
+function setAuthMsg(text, type) {
+  const el = document.getElementById('authMsg');
+  el.textContent = text;
+  el.className   = 'auth-msg ' + type;
+}
+
+async function handleAuth() {
+  const email    = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!email || !password) { setAuthMsg('Veuillez remplir tous les champs.', 'error'); return; }
+  const btn = document.getElementById('authSubmit');
+  btn.disabled = true;
+  setAuthMsg('', '');
+  let error;
+  if (_authMode === 'login') {
+    ({ error } = await supabase.auth.signInWithPassword({ email, password }));
+  } else {
+    ({ error } = await supabase.auth.signUp({ email, password }));
+    if (!error) {
+      btn.disabled = false;
+      setAuthMsg("Compte créé ! Vérifiez votre email pour confirmer votre inscription.", 'ok');
+      return;
+    }
+  }
+  btn.disabled = false;
+  if (error) setAuthMsg(error.message, 'error');
+}
+
+async function signOut() {
+  await supabase.auth.signOut();
+}
+
+// ───────────────────────────── STATE ─────────────────────────────
+const S = {
+  IDLE      : 'idle',
+  SPEAKING  : 'speaking',
+  LISTENING : 'listening',
+  SOUFFLEUR : 'souffleur',
+  PAUSED    : 'paused',
+  DONE      : 'done',
+};
+
+let replicas       = [];
+let currentIndex   = 0;
+let playerChar     = '';
+let appState       = S.IDLE;
+let recognition    = null;
+let voices         = [];
+let voiceMap       = {};
+let souffleurVoice = null;
+let audioCtx       = null;
+let ttsRate        = 1.0;  // débit de parole TTS (0.5 – 2.0)
+let transcriptAccum  = '';   // dernier résultat isFinal accumulé
+let latestTranscript = '';   // dernier texte vu (interim ou final) — utilisé par le timer
+let pendingResultCb  = null; // callback à déclencher quand le comédien valide
+let silenceTimer     = null; // timer de détection de fin de réplique par silence
+let skipFlag       = false;
+let replicaLog     = {};  // replicaIndex → { expected, spoken, score, passed }
+let speakGen       = 0;   // incrémenté à chaque speak() ; les callbacks ignorent les gen obsolètes
+
+// Seuils de tolérance (recall, precision) selon le palier choisi
+const TIERS = {
+  strict : { recall: 1.00, precision: 1.00 },
+  normal : { recall: 0.90, precision: 0.80 },
+  souple : { recall: 0.75, precision: 0.60 },
+  libre  : { recall: 0.60, precision: 0.40 },
+};
+let currentTier = TIERS.strict;
+
+// ─────────────────────── BROWSER SUPPORT ─────────────────────────
+function checkSupport() {
+  const hasTTS = 'speechSynthesis' in window;
+  const hasSTT = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  const warn   = document.getElementById('supportWarn');
+  if (!hasTTS || !hasSTT) {
+    warn.innerHTML = '⚠️ Certaines APIs ne sont pas disponibles dans ce navigateur. '
+      + '<strong>Utilisez Google Chrome</strong> pour le bon fonctionnement (TTS + reconnaissance vocale).';
+    warn.style.display = 'block';
+    return false;
+  }
+  warn.style.display = 'none';
+  return true;
+}
+
+// ──────────────────────────── PARSING ────────────────────────────
+
+// Détecte une ligne entière de didascalie :
+//   (texte)  [texte]  *texte*  _texte_  → formats classiques
+//   **(texte)**  **(texte)** → gras+italique parfois utilisé dans les PDF
+function isDirLine(line) {
+  return /^\(.*\)\s*$/.test(line)           // (texte)
+      || /^\[.*\]\s*$/.test(line)           // [texte]
+      || /^\*[^*].*[^*]\*\s*$/.test(line)  // *texte*  (italique markdown)
+      || /^_[^_]+_\s*$/.test(line)         // _texte_
+      || /^\*\*\(.*\)\*\*\s*$/.test(line); // **(texte)** (gras markdown)
+}
+
+// Découpe un texte en segments {text, dir} selon les marqueurs de didascalie inline
+function segmentText(text) {
+  const segs = [];
+  const re = /(\([^)]*\)|\[[^\]]*\]|\*[^*\n]+\*|_[^_\n]+_)/g;
+  let last = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) segs.push({ text: text.slice(last, m.index), dir: false });
+    segs.push({ text: m[0], dir: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) segs.push({ text: text.slice(last), dir: false });
+  return segs.filter(s => s.text.trim());
+}
+
+// Supprime les didascalies inline dans le texte d'une réplique
+function stripInlineDirs(text) {
+  return text
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\*[^*]+\*/g, '')
+    .replace(/_[^_]+_/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Extrait le nom du personnage et le reste de la ligne selon le format détecté.
+// Formats supportés :
+//   **Prénom** : texte      (gras markdown)
+//   PRÉNOM : texte          (tout majuscules)
+//   Prénom : texte          (majuscule initiale, 1–4 mots, suivi de " :")
+function matchHeader(line) {
+  // Format **Nom** :
+  let m = line.match(/^\*\*([^*]+)\*\*\s*:\s*(.*)/);
+  if (m) return { name: m[1].trim().toUpperCase(), rest: m[2].trim() };
+
+  // Format TOUT EN MAJUSCULES :
+  m = line.match(/^([A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ][A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ\s\-]*?)\s*:\s+(.*)/);
+  if (m) return { name: m[1].trim().toUpperCase(), rest: m[2].trim() };
+
+  // Format Majuscule initiale (ex: "Manu :" ou "Le Roi :") — max 4 mots, séparé par " :"
+  // On accepte seulement si le nom fait 1–4 mots courts (pas une phrase)
+  m = line.match(/^([A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇ][a-zA-ZÀ-ÿ\-]*(?:\s+[A-ZÀ-ÿa-z\-]+){0,3})\s*:\s+(.*)/);
+  if (m) {
+    const candidate = m[1].trim();
+    // Rejette si le "nom" ressemble à une phrase (contient des mots de liaison communs)
+    const looksLikeSentence = /\b(qui|que|qu|il|elle|je|tu|nous|vous|ils|elles|ce|se|son|sa|les|des|une|est|dans|avec|pour|par|sur)\b/i.test(candidate);
+    if (!looksLikeSentence) {
+      return { name: candidate.toUpperCase(), rest: m[2].trim() };
+    }
+  }
+
+  return null;
+}
+
+function parseScript(raw) {
+  const result  = [];
+  let curChar   = null;
+  let curLines  = [];
+
+  const flushChar = () => {
+    if (curChar !== null && curLines.length > 0) {
+      const joined = curLines.join(' ');
+      const text = stripInlineDirs(joined);
+      if (text) result.push({ type: 'replica', character: curChar, text, segments: segmentText(joined) });
+    }
+    curLines = [];
+  };
+
+  const rawLines = raw.split('\n');
+
+  // ── Passe 1 : détecter les noms sans ":" ────────────────────────
+  // Regex : 1 à 3 mots TOUT EN MAJUSCULES en début de ligne
+  const CAPS_PREFIX = /^([A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ][A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ'\-]*(?:\s+[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ][A-ZÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ'\-]*){0,2})/;
+  const noColonSet  = new Set();
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i].trim();
+    if (!line || isDirLine(line) || matchHeader(line)) continue;
+
+    const m = line.match(CAPS_PREFIX);
+    if (!m) continue;
+    const name = m[1].trim();
+    if (name.length < 2) continue;
+
+    const rest = line.slice(name.length).trim();
+
+    if (rest === '') {
+      // Nom seul sur sa ligne : valider en regardant la ligne suivante
+      const next = rawLines.slice(i + 1).find(l => l.trim())?.trim() || '';
+      if (!isDirLine(next) && !matchHeader(next) && /[a-zàâäéèêëîïôùûüçœæ]/.test(next.slice(0, 50)))
+        noColonSet.add(name);
+    } else {
+      // "NOM texte" : le reste doit contenir des minuscules (= dialogue, pas tirade en caps)
+      if (/[a-zàâäéèêëîïôùûüçœæ]/.test(rest.slice(0, 50)))
+        noColonSet.add(name);
+    }
+  }
+
+  // Trier par longueur décroissante : "LA REINE" avant "LA"
+  const knownNames = [...noColonSet].sort((a, b) => b.length - a.length);
+
+  // ── Passe 2 : parsing ────────────────────────────────────────────
+  for (const rawLine of rawLines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (isDirLine(line)) {
+      flushChar();
+      result.push({ type: 'direction', text: line });
+      continue;
+    }
+
+    let h = matchHeader(line);
+
+    // Essayer les noms détectés sans ":"
+    let fromKnownName = false;
+    if (!h) {
+      for (const name of knownNames) {
+        if (line === name) {
+          h = { name, rest: '' }; break;
+        }
+        if (line.startsWith(name + ' ')) {
+          h = { name, rest: line.slice(name.length + 1).trim() };
+          fromKnownName = true;
+          break;
+        }
+      }
+    }
+
+    // "NOM description action." → didascalie (pas une réplique)
+    // Exemples : "EMILE face au poulet-cocotte.", "SARAH apparaît dans le dos d'EMILE."
+    if (h && fromKnownName && h.rest && /\.\s*$/.test(h.rest) && !/\.\.\.\s*$/.test(h.rest)) {
+      flushChar();
+      result.push({ type: 'direction', text: line });
+      continue;
+    }
+
+    if (h) {
+      flushChar();
+      curChar  = h.name;
+      curLines = h.rest ? [h.rest] : [];
+    } else if (curChar !== null) {
+      curLines.push(line);
+    } else {
+      result.push({ type: 'direction', text: line });
+    }
+  }
+
+  flushChar();
+  return result;
+}
+
+// ────────────────────────── VOICES ──────────────────────────────
+function loadVoices() {
+  return new Promise(resolve => {
+    const attempt = () => {
+      const all = window.speechSynthesis.getVoices();
+      const fr  = all.filter(v => v.lang.startsWith('fr'));
+      voices = fr.length ? fr : all;
+      resolve();
+    };
+    if (window.speechSynthesis.getVoices().length > 0) {
+      attempt();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => { attempt(); };
+      setTimeout(attempt, 1200); // fallback
+    }
+  });
+}
+
+function assignVoices() {
+  const others = [...new Set(replicas.map(r => r.character))].filter(c => c !== playerChar);
+  voiceMap = {};
+  others.forEach((char, i) => {
+    voiceMap[char] = voices[i % voices.length] ?? null;
+  });
+  // Souffleur voice: prefer a voice not already used, or last voice, or null
+  const usedNames = new Set(Object.values(voiceMap).filter(Boolean).map(v => v.name));
+  souffleurVoice = voices.find(v => !usedNames.has(v.name)) ?? voices[voices.length - 1] ?? null;
+}
+
+// ─────────────────────── TEXT COMPARISON ─────────────────────────
+
+// Normalisation phonétique française : rend homophones équivalents.
+// Ex : "écrits"="écrit", "vers"="verre"="vert", "poil"="poêle", "saint"="sain"="sein"
+function phoneticize(w) {
+  // 1. Diphtongues et voyelles composées → forme canonique
+  w = w.replace(/eau/g, 'o');          // beau→bo, gâteau→gato
+  w = w.replace(/au/g,  'o');          // au→o
+  w = w.replace(/oeu/g, 'eu');         // coeur→ceur
+  w = w.replace(/oe/g,  'oi');         // poele→poile  (poêle=poil)
+  w = w.replace(/ai/g,  'e');          // vrai→vre, mais→me
+  w = w.replace(/ei/g,  'e');          // reine→rene
+  // 2. Voyelles nasales → forme unique
+  w = w.replace(/(?:an|en|am|em)(?=[^aeiou]|$)/g, 'an'); // enfant, temps → an
+  w = w.replace(/(?:ain|ein|in|im|yn|un|um)(?=[^aeiou]|$)/g, 'in'); // saint=sain=sein
+  w = w.replace(/(?:on|om)(?=[^aeiou]|$)/g, 'on');       // bon, bombe
+  // 3. Doubles consonnes → simple
+  w = w.replace(/(.)\1+/g, '$1');      // verre→vere, comme→come
+  // 4. Consonnes finales muettes
+  w = w.replace(/[stdxzr]+$/, '');     // écrits→ecri, finir→fini
+  // 5. E final muet
+  if (w.length >= 3) w = w.replace(/e$/, '');
+  return w;
+}
+
+function normalizeWords(text) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // strip diacritics
+    .replace(/[^a-z0-9\s]/g, ' ')      // strip punctuation
+    .trim()
+    .split(/\s+/)
+    .filter(w => w.length > 0)
+    .map(phoneticize);
+}
+
+function isOkTexte(text) {
+  const s = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(ok|au|eau|o|oc)\b.{0,10}\b(texte?|text)\b/.test(s);
+}
+
+// Retourne : { match: true } | { match: false, score: 0–100 } | 'souffleur'
+function compareTexts(spoken, expected) {
+  if (isOkTexte(spoken)) return 'souffleur';
+
+  const spokenWords   = normalizeWords(stripHesitations(spoken));
+  const expectedWords = normalizeWords(expected);
+
+  if (expectedWords.length === 0) return { match: true, score: 100 };
+  if (spokenWords.length === 0)   return { match: false, score: 0 };
+
+  // Intersection multiset (gère les mots répétés)
+  const remaining = [...spokenWords];
+  let matched = 0;
+  for (const w of expectedWords) {
+    const i = remaining.indexOf(w);
+    if (i !== -1) { matched++; remaining.splice(i, 1); }
+  }
+
+  const recall    = matched / expectedWords.length;
+  const precision = matched / spokenWords.length;
+  // Score affiché = rappel (% des mots attendus effectivement prononcés)
+  const score = Math.round(recall * 100);
+
+  if (recall >= currentTier.recall && precision >= currentTier.precision) return { match: true, score: 100 };
+  return { match: false, score };
+}
+
+// ─────────────────────── AUDIO FEEDBACK ─────────────────────────
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBeep({ freq1 = 440, freq2 = null, duration = 0.25, gain = 0.25 } = {}) {
+  try {
+    const ctx  = getAudioCtx();
+    const osc  = ctx.createOscillator();
+    const gNode = ctx.createGain();
+    osc.connect(gNode);
+    gNode.connect(ctx.destination);
+    osc.frequency.setValueAtTime(freq1, ctx.currentTime);
+    if (freq2) osc.frequency.setValueAtTime(freq2, ctx.currentTime + duration * 0.5);
+    gNode.gain.setValueAtTime(gain, ctx.currentTime);
+    gNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) { /* audio ctx unavailable */ }
+}
+
+const playSuccess = () => playBeep({ freq1: 880, freq2: 1320, duration: 0.28, gain: 0.35 });
+
+function playError() {
+  // Trois bips descendants bien audibles
+  try {
+    const ctx = getAudioCtx();
+    [0, 0.18, 0.36].forEach((offset, i) => {
+      const osc   = ctx.createOscillator();
+      const gNode = ctx.createGain();
+      osc.connect(gNode);
+      gNode.connect(ctx.destination);
+      const freq = 520 - i * 120;  // 520 → 400 → 280 Hz
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + offset);
+      gNode.gain.setValueAtTime(0.45, ctx.currentTime + offset);
+      gNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.15);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.15);
+    });
+  } catch(e) {}
+}
+
+// ──────────────────────────── TTS ────────────────────────────────
+function speak(text, voice, onDone) {
+  if (skipFlag) { if (onDone) onDone(); return; }
+
+  window.speechSynthesis.cancel();
+  const myGen = ++speakGen;
+
+  setTimeout(() => {
+    if (myGen !== speakGen) return;
+    if (skipFlag) return;
+
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang  = 'fr-FR';
+    utt.rate  = ttsRate;
+    if (voice) utt.voice = voice;
+
+    utt.onend = () => {
+      if (myGen !== speakGen) return;
+      if (!skipFlag && onDone) onDone();
+    };
+    utt.onerror = e => {
+      if (myGen !== speakGen) return;
+      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      console.warn('TTS error:', e.error);
+      if (!skipFlag && onDone) onDone();
+    };
+
+    // Chrome peut rester en état "paused" après un cancel() — forcer resume()
+    window.speechSynthesis.resume();
+    window.speechSynthesis.speak(utt);
+  }, 50);
+}
+
+function speakCharacter(text, character, onDone) {
+  speak(text, voiceMap[character] ?? null, onDone);
+}
+
+function speakSouffleur(text, onDone) {
+  // Ne pas utiliser souffleurVoice (peut être une voix réseau silencieuse sous Chrome).
+  // Même technique que hearCorrectLine : warmup + voix locale fr.
+  window.speechSynthesis.cancel();
+
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang  = 'fr-FR';
+  utt.rate  = 0.92;
+  const frVoice = voices.find(v => v.lang.startsWith('fr') && v.localService) || voices[0] || null;
+  if (frVoice) utt.voice = frVoice;
+  utt.onend   = () => { if (onDone) onDone(); };
+  utt.onerror = e => { if (e.error === 'interrupted' || e.error === 'canceled') return; if (onDone) onDone(); };
+
+  const warmup = new SpeechSynthesisUtterance('ok');
+  warmup.volume = 0.001;
+  warmup.rate   = 2;
+  warmup.lang   = 'fr-FR';
+  warmup.onend   = () => { window.speechSynthesis.speak(utt); };
+  warmup.onerror = () => { window.speechSynthesis.speak(utt); };
+  window.speechSynthesis.speak(warmup);
+}
+
+// ──────────────────────────── STT ────────────────────────────────
+
+// Délai de silence adaptatif selon la longueur de la réplique attendue
+function silenceDelay(expectedText) {
+  return 750;
+}
+
+// Supprime les hésitations orales du transcript (pour la comparaison)
+function stripHesitations(text) {
+  return text
+    .replace(/\b(euh+|heu+|hm+|hmm+|bah|ben|eh|ah|pff)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function clearSilenceTimer() {
+  if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+}
+
+function armSilenceTimer(expectedText) {
+  clearSilenceTimer();
+  silenceTimer = setTimeout(() => {
+    silenceTimer = null;
+    const cb = pendingResultCb;
+    const transcript = latestTranscript;
+    if (cb && !skipFlag && appState === S.LISTENING && transcript) {
+      // Si le dernier texte capturé contient "ok texte", ne pas évaluer — laisser le micro continuer
+      if (isOkTexte(transcript)) return;
+      stopListening();
+      cb(transcript);
+    }
+  }, silenceDelay(expectedText));
+}
+
+function startListening(expectedText, onResult) {
+  if (skipFlag) return;
+  // Le micro doit toujours rester actif, même quand le timer est armé,
+  // pour pouvoir capter "ok texte" pendant le silence
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showError('Reconnaissance vocale non disponible. Utilisez Chrome.'); return; }
+
+  // Arrêter le micro sans toucher au silenceTimer
+  if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
+  pendingResultCb = onResult;
+
+  recognition = new SR();
+  recognition.lang            = 'fr-FR';
+  recognition.continuous      = true;
+  recognition.interimResults  = true;
+  recognition.maxAlternatives = 5; // tester toutes les alternatives pour "ok texte"
+
+  recognition.onresult = (event) => {
+    const lastResult = event.results[event.results.length - 1];
+    const isFinal = lastResult.isFinal;
+
+    // Vérifier toutes les alternatives pour "ok texte"
+    if (!skipFlag) {
+      for (let a = 0; a < lastResult.length; a++) {
+        if (isOkTexte(lastResult[a].transcript)) {
+          clearSilenceTimer();
+          const cb = pendingResultCb;
+          if (cb) { stopListening(); cb('ok texte'); }
+          return;
+        }
+      }
+    }
+
+    let sessionText = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      sessionText += event.results[i][0].transcript;
+    }
+    if (!sessionText.trim()) return;
+
+    const full = (transcriptAccum + (transcriptAccum ? ' ' : '') + sessionText).trim();
+    document.getElementById('transcriptText').textContent = full;
+    if (full.length >= latestTranscript.length) latestTranscript = full;
+    if (isFinal) transcriptAccum = full;
+
+    clearSilenceTimer();
+    armSilenceTimer(expectedText);
+  };
+
+  recognition.onerror = (event) => {
+    if (skipFlag) return;
+    if (event.error === 'not-allowed') {
+      setState(S.IDLE);
+      showError('Accès au microphone refusé. Autorisez le micro dans votre navigateur.');
+      return;
+    }
+    if (appState === S.LISTENING) {
+      setTimeout(() => startListening(expectedText, onResult), 300);
+    }
+  };
+
+  recognition.onend = () => {
+    // En mode continuous, onend ne devrait pas arriver sauf si on a appelé abort()
+    recognition = null;
+    if (appState === S.LISTENING && !skipFlag) {
+      setTimeout(() => startListening(expectedText, onResult), 200);
+    }
+  };
+
+  try { recognition.start(); } catch(e) { console.warn('recognition.start():', e); }
+}
+
+function stopListening() {
+  clearSilenceTimer();
+  pendingResultCb = null;
+  if (recognition) {
+    try { recognition.abort(); } catch(e) {}
+    recognition = null;
+  }
+}
+
+function finishSpeaking() {
+  if (appState !== S.LISTENING) return;
+  clearSilenceTimer();
+  const cb         = pendingResultCb;
+  const transcript = latestTranscript || transcriptAccum;
+  stopListening();
+  if (cb) cb(transcript || '');
+}
+
+// ──────────────────────── MAIN LOOP ─────────────────────────────
+function processReplica(index) {
+  if (skipFlag) { skipFlag = false; return; }
+  if (appState === S.PAUSED) return;
+
+  currentIndex = index;
+
+  if (index >= replicas.length) {
+    setState(S.DONE);
+    updateProgress();
+    document.querySelectorAll('.replica').forEach(el => {
+      el.classList.remove('r-active', 'r-listening');
+      el.classList.add('r-done');
+    });
+    setTimeout(showReport, 800);
+    return;
+  }
+
+  updateProgress();
+  highlightReplica(index, false);
+
+  const replica = replicas[index];
+
+  // Sauter les didascalies silencieusement
+  if (replica.type === 'direction') {
+    processReplica(index + 1);
+    return;
+  }
+
+  if (replica.character !== playerChar) {
+    // ── Other character: TTS ──
+    setState(S.SPEAKING, replica.character + ' parle…');
+    speakCharacter(replica.text, replica.character, () => {
+      if (skipFlag) { skipFlag = false; return; }
+      setTimeout(() => processReplica(index + 1), 350);
+    });
+  } else {
+    // ── Player turn: STT ──
+    waitForPlayer(replica.text, index);
+  }
+}
+
+function waitForPlayer(expectedText, index, revealed = false) {
+  if (skipFlag || appState === S.PAUSED) return;
+
+  transcriptAccum  = '';
+  latestTranscript = '';
+  hideErrorPanel();
+  document.getElementById('transcriptText').textContent = '—';
+  document.getElementById('transcriptHint').textContent = '💡 Dites « ok texte » pour entendre votre réplique';
+  setState(S.LISTENING, 'À toi de parler !');
+  highlightReplica(index, !revealed); // ne pas re-flouter si la réplique a déjà été révélée
+
+  startListening(expectedText, (transcript) => {
+    const result = compareTexts(transcript, expectedText);
+
+    if (result === 'souffleur') {
+      stopListening();
+      hideErrorPanel();
+      setState(S.SOUFFLEUR, '📖 Souffleur…');
+      highlightReplica(index, false);
+      speakSouffleur(expectedText, () => {
+        if (!skipFlag && appState !== S.PAUSED) {
+          setTimeout(() => waitForPlayer(expectedText, index, true), 500); // révélée désormais
+        }
+      });
+
+    } else if (result.match) {
+      stopListening();
+      hideErrorPanel();
+      // Enregistrer même les répliques acceptées (pour le rapport)
+      replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: true };
+      document.getElementById('transcriptHint').textContent = result.score === 100 ? '✓ Parfait !' : `✓ Accepté (${result.score} %)`;
+      setState(S.IDLE, '✓ Correct !');
+      highlightReplica(index, false);
+      setTimeout(() => processReplica(index + 1), 900);
+
+    } else {
+      // Incorrect — son + lecture immédiate de la bonne réplique + panneau
+      stopListening();
+      playError();
+      highlightReplica(index, false, true);
+      setState(S.SOUFFLEUR, '✗ Pas tout à fait…');
+      // Enregistrer / mettre à jour (on garde la dernière tentative)
+      replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: false };
+      setState(S.IDLE, '✗ Pas tout à fait…');
+      showErrorPanel(result.score, expectedText, index);
+    }
+  });
+}
+
+// ────────────────────── UI HELPERS ──────────────────────────────
+function setState(s, label) {
+  appState = s;
+  const pill = document.getElementById('statusPill');
+
+  const map = {
+    [S.IDLE]      : ['s-idle',       label || 'En attente…'],
+    [S.SPEAKING]  : ['s-speaking',   label || 'Lecture en cours…'],
+    [S.LISTENING] : ['s-listening',  label || 'À toi de parler !'],
+    [S.SOUFFLEUR] : ['s-souffleur',  label || '📖 Souffleur…'],
+    [S.PAUSED]    : ['s-paused',     '⏸ En pause'],
+    [S.DONE]      : ['s-done',       '🎉 Répétition terminée !'],
+  };
+
+  const [cls, text] = map[s] || ['s-idle', label || ''];
+  pill.className = 'status-pill ' + cls;
+  pill.textContent = text;
+  document.getElementById('finishBtn').style.display = (s === S.LISTENING) ? 'block' : 'none';
+}
+
+function updateProgress() {
+  const total = replicas.length;
+  const idx   = Math.min(currentIndex + 1, total);
+  const pct   = total ? Math.round((currentIndex / total) * 100) : 0;
+  document.getElementById('progressLabel').textContent = `Réplique ${idx} / ${total}`;
+  document.getElementById('progressPct').textContent   = pct + ' %';
+  document.getElementById('progressFill').style.width  = pct + '%';
+}
+
+function highlightReplica(index, isListening, isError = false) {
+  replicas.forEach((_, i) => {
+    const el = document.getElementById('r-' + i);
+    if (!el) return;
+    el.classList.remove('r-active', 'r-listening', 'r-error', 'r-done');
+    if (i <= index) el.classList.remove('r-future'); // révéler les répliques passées et courante
+    if (i < index) {
+      el.classList.add('r-done');
+    } else if (i === index) {
+      el.classList.add('r-active');
+      if (isListening) el.classList.add('r-listening');
+      if (isError)     el.classList.add('r-error');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+}
+
+function jumpToReplica(index) {
+  stopListening();
+  window.speechSynthesis.cancel();
+  hideErrorPanel();
+  skipFlag = true;
+  setTimeout(() => {
+    skipFlag = false;
+    setState(S.IDLE);
+    processReplica(index);
+  }, 120);
+}
+
+function buildScriptUI() {
+  const container = document.getElementById('scriptContainer');
+  container.innerHTML = '';
+
+  replicas.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.id    = `r-${i}`;
+
+    if (r.type === 'direction') {
+      div.className   = 'direction r-future';
+      div.textContent = r.text;
+    } else {
+      div.className = 'replica r-future ' + (r.character === playerChar ? 'r-player' : 'r-other');
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className   = 'replica-char-name';
+      nameDiv.textContent = r.character + (r.character === playerChar ? ' — vous' : '');
+
+      const textDiv = document.createElement('div');
+      textDiv.className   = 'replica-body';
+      textDiv.textContent = r.text;
+
+      div.appendChild(nameDiv);
+      div.appendChild(textDiv);
+    }
+
+    div.addEventListener('click', () => {
+      if (div.classList.contains('r-done')) jumpToReplica(i);
+    });
+
+    container.appendChild(div);
+  });
+}
+
+function showErrorPanel(score, expectedText, index) {
+  const panel = document.getElementById('errorPanel');
+  document.getElementById('errorScore').textContent =
+    score === 0 ? 'Aucun mot correct détecté.' : `${score} % de la réplique correct.`;
+  document.getElementById('errorActions').style.display = '';
+  document.getElementById('errorPostActions').style.display = 'none';
+  panel.style.display = 'block';
+  // stocker pour les boutons
+  panel._expected = expectedText;
+  panel._index    = index;
+}
+
+function hideErrorPanel() {
+  document.getElementById('errorPanel').style.display = 'none';
+}
+
+function hearCorrectLine() {
+  const panel = document.getElementById('errorPanel');
+  const expectedText = panel._expected;
+  const index        = panel._index;
+
+  if (!expectedText) return;
+
+  stopListening();
+  setState(S.SOUFFLEUR, '📖 Lecture de la réplique…');
+  highlightReplica(index, false);
+
+  document.getElementById('errorActions').style.display = 'none';
+  document.getElementById('errorPostActions').style.display = 'none';
+  panel.style.display = 'block';
+
+  ++speakGen; // invalider d'éventuels callbacks speak() en attente
+
+  // Préparer l'utterance réelle à l'avance
+  const utt = new SpeechSynthesisUtterance(expectedText);
+  utt.lang  = 'fr-FR';
+  utt.rate  = 0.92;
+  // Ne pas forcer souffleurVoice : certaines voix réseau Chrome jouent en silence.
+  // La voix par défaut fr-FR est garantie audible.
+  const frVoice = voices.find(v => v.lang.startsWith('fr') && v.localService) || voices[0] || null;
+  if (frVoice) utt.voice = frVoice;
+  utt.onend = () => {
+    if (skipFlag || appState === S.PAUSED) return;
+    document.getElementById('errorPostActions').style.display = '';
+  };
+  utt.onerror = e => {
+    if (e.error === 'interrupted' || e.error === 'canceled') return;
+    document.getElementById('errorActions').style.display = '';
+  };
+
+  // Chrome bug : après STT, speak() via setTimeout échoue silencieusement depuis onclick.
+  // Solution : utterance de démarrage silencieuse → dans son onend (contexte TTS natif),
+  // appeler speak(utt) DIRECTEMENT sans cancel() ni setTimeout.
+  console.log('[hear] start — speaking:', window.speechSynthesis.speaking, 'pending:', window.speechSynthesis.pending, 'paused:', window.speechSynthesis.paused);
+  window.speechSynthesis.cancel();
+  const warmup = new SpeechSynthesisUtterance('ok');
+  warmup.volume = 0.001;
+  warmup.rate   = 2;
+  warmup.lang   = 'fr-FR';
+  warmup.onstart = () => console.log('[hear] warmup onstart');
+  warmup.onend = () => { console.log('[hear] warmup onend → speak real'); window.speechSynthesis.speak(utt); };
+  warmup.onerror = e => { console.warn('[hear] warmup onerror:', e.error); window.speechSynthesis.speak(utt); };
+  utt.onstart = () => console.log('[hear] real utt onstart');
+  utt.onend = (e => {
+    const orig = utt.onend;
+    return function(ev) { console.log('[hear] real utt onend'); orig && orig(ev); };
+  })(utt.onend);
+  utt.onerror = (e => {
+    const orig = utt.onerror;
+    return function(ev) { console.warn('[hear] real utt onerror:', ev.error); orig && orig(ev); };
+  })(utt.onerror);
+  console.log('[hear] calling warmup speak');
+  window.speechSynthesis.speak(warmup);
+  console.log('[hear] after warmup speak — pending:', window.speechSynthesis.pending);
+}
+
+function goBackToPrevious() {
+  const panel = document.getElementById('errorPanel');
+  const index = panel._index;
+  hideErrorPanel();
+  document.getElementById('errorActions').style.display = '';
+  document.getElementById('errorPostActions').style.display = 'none';
+  // Find previous replica (skip directions)
+  let prev = index - 1;
+  while (prev >= 0 && replicas[prev] && replicas[prev].isDir) prev--;
+  processReplica(prev >= 0 ? prev : index);
+}
+
+function continueAfterError() {
+  const panel = document.getElementById('errorPanel');
+  const index = panel._index;
+  hideErrorPanel();
+  document.getElementById('errorActions').style.display = '';
+  document.getElementById('errorPostActions').style.display = 'none';
+  processReplica(index + 1);
+}
+
+function retryLine() {
+  const panel = document.getElementById('errorPanel');
+  const expectedText = panel._expected;
+  const index        = panel._index;
+  hideErrorPanel();
+  waitForPlayer(expectedText, index);
+}
+
+// ─────────────────────── RAPPORT ─────────────────────────────────
+
+// Produit un diff mot-à-mot entre ce qui était attendu et ce qui a été dit.
+// Retourne un tableau de {word, status: 'ok'|'missing'|'extra'}
+function diffWords(expected, spoken) {
+  const expWords  = normalizeWords(expected);
+  const spkWords  = normalizeWords(spoken);
+  const result    = [];
+  const remaining = [...spkWords];
+
+  for (const w of expWords) {
+    const i = remaining.indexOf(w);
+    if (i !== -1) {
+      result.push({ word: w, status: 'ok' });
+      remaining.splice(i, 1);
+    } else {
+      result.push({ word: w, status: 'missing' });
+    }
+  }
+  for (const w of remaining) {
+    result.push({ word: w, status: 'extra' });
+  }
+  return result;
+}
+
+function buildExpectedWithDiff(expectedText, spokenText) {
+  const diff         = diffWords(expectedText, spokenText || '');
+  const diffOnlyWords = diff.filter(d => d.status !== 'extra');
+  const tokens       = expectedText.split(/(\s+)/);
+  const frag         = document.createDocumentFragment();
+  let diffIdx        = 0;
+
+  for (const token of tokens) {
+    const span = document.createElement('span');
+    span.textContent = token;
+    if (!/^\s+$/.test(token)) {
+      const d = diffOnlyWords[diffIdx++];
+      if (d && d.status === 'missing') span.className = 'word-missing';
+    }
+    frag.appendChild(span);
+  }
+  return frag;
+}
+
+function showReport() {
+  const allPlayerReplicas = replicas
+    .map((r, i) => ({ replica: r, index: i }))
+    .filter(({ replica }) => replica.type === 'replica' && replica.character === playerChar);
+
+  const total   = allPlayerReplicas.length;
+  const failed  = allPlayerReplicas.filter(({ index }) => replicaLog[index] && !replicaLog[index].passed).length;
+  const correct = total - failed;
+  const pct     = total ? Math.round((correct / total) * 100) : 100;
+
+  const container = document.getElementById('reportContent');
+  container.innerHTML = '';
+
+  // Résumé
+  const summary = document.createElement('div');
+  summary.className = 'report-summary';
+  summary.innerHTML = `
+    <div class="report-score" style="color:${pct >= 80 ? '#4ccc70' : pct >= 50 ? '#ffc107' : '#ff6060'}">${pct} %</div>
+    <div class="report-sub">${correct} / ${total} répliques correctes</div>
+    ${failed === 0 ? '<div class="report-perfect">Bravo, aucune erreur !</div>' : ''}
+  `;
+  container.appendChild(summary);
+
+  const title = document.createElement('h3');
+  title.className   = 'report-title';
+  title.textContent = 'Texte complet';
+  container.appendChild(title);
+
+  // Afficher l'intégralité du script dans l'ordre
+  replicas.forEach((r, i) => {
+    if (r.type === 'direction') {
+      const div = document.createElement('div');
+      div.className   = 'report-script-dir';
+      div.textContent = r.text;
+      container.appendChild(div);
+      return;
+    }
+
+    if (r.character !== playerChar) {
+      const div = document.createElement('div');
+      div.className = 'report-script-other';
+      const nameEl = document.createElement('div');
+      nameEl.className   = 'rs-name';
+      nameEl.textContent = r.character;
+      const textEl = document.createElement('div');
+      textEl.className   = 'rs-text';
+      textEl.textContent = r.text;
+      div.appendChild(nameEl);
+      div.appendChild(textEl);
+      container.appendChild(div);
+      return;
+    }
+
+    // Réplique du joueur
+    const log       = replicaLog[i];
+    const passed    = !log || log.passed;
+    const score     = log ? log.score : null;
+    const spoken    = log ? log.spoken : null;
+    const hasErrors = log && score !== null && score < 100;
+
+    const block = document.createElement('div');
+    block.className = 'report-block ' + (passed && !hasErrors ? 'report-block-ok' : 'report-block-err');
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className   = 'report-char-name';
+    nameDiv.textContent = r.character + ' — vous';
+
+    const badge = document.createElement('div');
+    badge.className = 'report-badge';
+    if (score === null) {
+      badge.textContent = 'Passé'; badge.style.color = '#888';
+    } else if (score === 100) {
+      badge.textContent = '✓ Parfait'; badge.style.color = '#4ccc70';
+    } else if (passed) {
+      badge.textContent = `⚠ ${score} % — accepté`; badge.style.color = '#ffc107';
+    } else {
+      badge.textContent = `✗ ${score} %`; badge.style.color = '#ff6060';
+    }
+
+    const expectedDiv = document.createElement('div');
+    expectedDiv.className = 'report-expected';
+    expectedDiv.appendChild(buildExpectedWithDiff(r.text, spoken));
+
+    block.appendChild(nameDiv);
+    block.appendChild(badge);
+    block.appendChild(expectedDiv);
+
+    if (spoken && score !== 100) {
+      const spokenDiv = document.createElement('div');
+      spokenDiv.className   = 'report-spoken';
+      spokenDiv.textContent = '↳ Vous avez dit : « ' + spoken + ' »';
+      block.appendChild(spokenDiv);
+    }
+
+    container.appendChild(block);
+  });
+
+  document.getElementById('rehearsalScreen').style.display = 'none';
+  document.getElementById('reportScreen').style.display    = 'block';
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.display = 'none'; }, 9000);
+}
+
+// ─────────────────────── CONTROLS ────────────────────────────────
+function setRate(rate) {
+  ttsRate = rate;
+  document.querySelectorAll('.speed-preset').forEach(btn => {
+    btn.classList.toggle('active', parseFloat(btn.dataset.rate) === rate);
+  });
+}
+
+function togglePause() {
+  const btn = document.getElementById('pauseBtn');
+
+  if (appState !== S.PAUSED) {
+    // Pause
+    stopListening();
+    window.speechSynthesis.cancel();
+    skipFlag = false;
+    setState(S.PAUSED);
+    btn.innerHTML = '&#9654; Reprendre';
+  } else {
+    // Resume
+    setState(S.IDLE);
+    btn.innerHTML = '&#9646;&#9646; Pause';
+    processReplica(currentIndex);
+  }
+}
+
+function skipCurrent() {
+  stopListening();
+  window.speechSynthesis.cancel();
+  skipFlag = false;
+  hideErrorPanel();
+  document.getElementById('transcriptHint').textContent = '';
+
+  const replica = replicas[currentIndex];
+  const next    = currentIndex + 1;
+
+  // Autre personnage : lire les 3 derniers mots de la réplique en cours, puis avancer
+  if (replica && replica.type === 'replica' && replica.character !== playerChar) {
+    const words     = replica.text.trim().split(/\s+/);
+    const lastThree = words.slice(-3).join(' ');
+    setState(S.SPEAKING, replica.character + ' parle…');
+    // Petit délai pour laisser speechSynthesis.cancel() prendre effet
+    setTimeout(() => {
+      if (skipFlag) return;
+      speakCharacter(lastThree, replica.character, () => {
+        if (!skipFlag) processReplica(next);
+      });
+    }, 150);
+  } else {
+    processReplica(next);
+  }
+}
+
+function skipFromError() {
+  const panel = document.getElementById('errorPanel');
+  const expectedText = panel._expected;
+  const index        = panel._index;
+  hideErrorPanel();
+  stopListening();
+  window.speechSynthesis.cancel(); // stopper immédiatement tout TTS en cours
+  skipFlag = false;
+
+  setState(S.IDLE);
+  processReplica(index + 1);
+}
+
+function restartRehearsal() {
+  stopListening();
+  window.speechSynthesis.cancel();
+  skipFlag  = false;
+  appState  = S.IDLE;
+  document.getElementById('pauseBtn').innerHTML = '&#9646;&#9646; Pause';
+  document.getElementById('transcriptText').textContent = '—';
+  document.getElementById('transcriptHint').textContent = '';
+  hideErrorPanel();
+  document.getElementById('reportScreen').style.display = 'none';
+  document.getElementById('rehearsalScreen').style.display = 'block';
+  replicaLog = {};
+  buildScriptUI();
+  currentIndex = 0;
+  processReplica(0);
+}
+
+function goSetup() {
+  stopListening();
+  window.speechSynthesis.cancel();
+  skipFlag = false;
+  appState = S.IDLE;
+  document.getElementById('rehearsalScreen').style.display = 'none';
+  document.getElementById('reportScreen').style.display    = 'none';
+  document.getElementById('previewScreen').style.display   = 'none';
+  document.getElementById('setupScreen').style.display     = 'block';
+  document.getElementById('pauseBtn').innerHTML = '&#9646;&#9646; Pause';
+  renderSavedScripts();
+}
+
+// ──────────────────────── ENTRY POINT ────────────────────────────
+async function startRehearsal() {
+  const raw      = getScriptText();
+  const charName = document.getElementById('playerChar').value.trim().toUpperCase();
+  const tierKey  = document.querySelector('input[name="tier"]:checked')?.value ?? 'strict';
+
+  if (!raw)      { showError('Veuillez coller le texte de la pièce.'); return; }
+  if (!charName) { showError('Veuillez entrer le nom de votre personnage.'); return; }
+  if (!checkSupport()) return;
+
+  const parsed = parseScript(raw);
+  if (parsed.length === 0) {
+    showError('Impossible de lire le texte. Vérifiez le format : "PERSONNAGE : réplique"');
+    return;
+  }
+
+  const allChars = [...new Set(parsed.filter(r => r.type === 'replica').map(r => r.character))];
+  if (!allChars.includes(charName)) {
+    showError(`Personnage "${charName}" introuvable. Personnages détectés : ${allChars.join(', ')}`);
+    return;
+  }
+
+  window._previewData = { raw, charName, tierKey, parsed };
+
+  // Sauter la preview si le texte vient de l'historique
+  const fromHistory = !!window._loadedScriptId;
+  window._loadedScriptId = null;
+
+  if (fromHistory) {
+    confirmAndStart(true);
+  } else {
+    buildPreviewUI(parsed);
+    document.getElementById('setupScreen').style.display   = 'none';
+    document.getElementById('previewScreen').style.display = 'block';
+  }
+}
+
+// Sélection de mots dans la preview
+let pvWords = []; // [{el, item, wordIdx}]
+let pvSelected = []; // indices dans pvWords
+
+function clearPvSelection() {
+  pvSelected.forEach(i => pvWords[i].el.classList.remove('wt-selected'));
+  pvSelected = [];
+  document.getElementById('pvToolbar').style.display = 'none';
+}
+
+function applyTypeToSelection(type) {
+  pvSelected.forEach(i => {
+    const { item, wordIdx } = pvWords[i];
+    item.words[wordIdx].type = type;
+    pvWords[i].el.className = 'pv-word wt-' + type;
+  });
+  clearPvSelection();
+}
+
+function buildPreviewUI(parsed) {
+  pvWords = [];
+  pvSelected = [];
+
+  // Pré-classifier chaque mot selon ce que le parseur sait déjà
+  parsed.forEach(item => {
+    item.words = [];
+
+    if (item.type === 'direction') {
+      // Toute la ligne est une didascalie
+      item.text.trim().split(/\s+/).forEach(w => item.words.push({ w, type: 'direction' }));
+
+    } else if (item.type === 'character') {
+      // Nom de personnage seul
+      (item.character || item.text).trim().split(/\s+/).forEach(w => item.words.push({ w, type: 'character' }));
+
+    } else {
+      // Replica : personnage + segments (texte / didascalie inline)
+      if (item.character) {
+        item.character.trim().split(/\s+/).forEach(w => item.words.push({ w, type: 'character' }));
+      }
+      // Utiliser les segments pour distinguer texte et didascalie au sein de la réplique
+      const segments = item.segments || [{ text: item.text, dir: false }];
+      segments.forEach(seg => {
+        const type = seg.dir ? 'direction' : 'replica';
+        seg.text.trim().split(/\s+/).filter(Boolean).forEach(w => item.words.push({ w, type }));
+      });
+    }
+  });
+
+  const list = document.getElementById('previewList');
+  list.innerHTML = '';
+
+  parsed.forEach((item, itemIdx) => {
+    const div = document.createElement('div');
+    div.className = 'pv-item';
+    div.style.flexWrap = 'wrap';
+    div.style.lineHeight = '1.9';
+
+    item.words.forEach((wordObj, wordIdx) => {
+      const span = document.createElement('span');
+      span.className = 'pv-word wt-' + wordObj.type;
+      span.textContent = wordObj.w + ' ';
+
+      const globalIdx = pvWords.length;
+      pvWords.push({ el: span, item, wordIdx });
+
+      span.addEventListener('click', () => {
+        const sel = pvSelected.indexOf(globalIdx);
+        if (sel === -1) {
+          pvSelected.push(globalIdx);
+          span.classList.add('wt-selected');
+        } else {
+          pvSelected.splice(sel, 1);
+          span.classList.remove('wt-selected');
+        }
+        document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
+      });
+
+      div.appendChild(span);
+    });
+
+    list.appendChild(div);
+  });
+}
+
+async function confirmAndStart(fromHistory = false) {
+  // Masquer tous les écrans intermédiaires immédiatement
+  document.getElementById('setupScreen').style.display   = 'none';
+  document.getElementById('previewScreen').style.display = 'none';
+
+  const { raw, charName, tierKey, parsed } = window._previewData;
+
+  currentTier = TIERS[tierKey] ?? TIERS.strict;
+  playerChar  = charName;
+
+  // Reconstruire depuis item.words (modifiés par l'utilisateur dans la preview)
+  // Un item peut avoir des mots de types mixtes → on regroupe les séquences
+  const result = [];
+  parsed.forEach(item => {
+    if (!item.words) {
+      if (item.type !== 'character') result.push(item);
+      return;
+    }
+    // Regrouper les mots consécutifs de même type
+    let curType = null, curWords = [];
+    const flush = () => {
+      if (!curWords.length) return;
+      const text = curWords.join(' ').trim();
+      if (text && curType !== 'character') {
+        result.push({ type: curType, character: curType === 'replica' ? item.character : null, text });
+      }
+      curWords = [];
+    };
+    item.words.forEach(({ w, type }) => {
+      if (type !== curType) { flush(); curType = type; }
+      curWords.push(w);
+    });
+    flush();
+  });
+  replicas = result;
+
+  await saveScriptToHistory(raw, charName, tierKey);
+
+  await loadVoices();
+  assignVoices();
+
+  document.getElementById('setupScreen').style.display     = 'none';
+  document.getElementById('previewScreen').style.display   = 'none';
+  document.getElementById('rehearsalScreen').style.display = 'block';
+
+  replicaLog   = {};
+  currentIndex = 0;
+  skipFlag     = false;
+  appState     = S.IDLE;
+  document.getElementById('transcriptText').textContent = '—';
+  document.getElementById('transcriptHint').textContent = '';
+  document.getElementById('pauseBtn').innerHTML = '&#9646;&#9646; Pause';
+  document.getElementById('playerLabel').textContent = charName;
+
+  buildScriptUI();
+  processReplica(0);
+}
+
+// ──────────────────── HISTORIQUE (Supabase) ──────────────────────
+
+async function getSavedScripts() {
+  if (!supabase || !currentUser) return [];
+  const { data, error } = await supabase
+    .from('scripts').select('*')
+    .order('last_used', { ascending: false }).limit(30);
+  return error ? [] : (data || []);
+}
+
+async function saveScriptToHistory(scriptText, charName, tier) {
+  if (!supabase || !currentUser) return;
+  const dateStr = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+  const now   = new Date().toISOString();
+  const title = charName + ' — ' + dateStr;
+  const hash  = simpleHash(scriptText + '|' + charName);
+
+  // Chercher doublon via hash (léger, pas de transfert du texte complet)
+  const { data: dup } = await supabase
+    .from('scripts').select('id').eq('script_hash', hash).maybeSingle();
+  if (dup) {
+    await supabase.from('scripts').update({ last_used: now, title, tier }).eq('id', dup.id);
+  } else {
+    // Supprimer le plus ancien si on atteint 30
+    const { count } = await supabase
+      .from('scripts').select('id', { count: 'exact', head: true });
+    if (count >= 30) {
+      const { data: oldest } = await supabase
+        .from('scripts').select('id').order('last_used', { ascending: true }).limit(1).single();
+      if (oldest) await supabase.from('scripts').delete().eq('id', oldest.id);
+    }
+    await supabase.from('scripts').insert({
+      id: Date.now().toString(), user_id: currentUser.id,
+      title, player_char: charName, tier, script: scriptText,
+      script_hash: hash, last_used: now
+    });
+  }
+}
+
+async function deleteScript(id) {
+  if (!supabase || !currentUser) return;
+  await supabase.from('scripts').delete().eq('id', id);
+  renderSavedScripts();
+}
+
+function renameScript(id) {
+  const el = document.getElementById('title-' + id);
+  if (!el) return;
+  el.contentEditable = 'true';
+  el.focus();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  async function save() {
+    el.contentEditable = 'false';
+    const newTitle = el.textContent.trim();
+    if (!newTitle) { renderSavedScripts(); return; }
+    if (!supabase || !currentUser) return;
+    await supabase.from('scripts').update({ title: newTitle }).eq('id', id);
+    renderSavedScripts();
+  }
+
+  el.addEventListener('blur', save, { once: true });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    if (e.key === 'Escape') { renderSavedScripts(); }
+  }, { once: true });
+}
+
+async function loadSavedScript(id) {
+  const scripts = await getSavedScripts();
+  const s = scripts.find(s => s.id === id);
+  if (!s) return;
+
+  setScriptText(s.script);
+  document.getElementById('playerChar').value = s.player_char;
+  const t = document.querySelector(`input[name="tier"][value="${s.tier}"]`);
+  if (t) t.checked = true;
+  window._loadedScriptId = id;
+  document.getElementById('scriptInput').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function renderSavedScripts() {
+  const container = document.getElementById('savedScripts');
+  if (!container) return;
+  const scripts = await getSavedScripts();
+  if (!scripts.length) { container.innerHTML = ''; return; }
+  container.innerHTML = '<div class="saved-section-title">Textes récents</div><div class="saved-list" id="savedList"></div>';
+  const list = document.getElementById('savedList');
+  scripts.forEach(s => {
+    const dateStr = new Date(s.last_used).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+    const item = document.createElement('div');
+    item.className = 'saved-item';
+    item.innerHTML = `
+      <div class="saved-item-info" onclick="loadSavedScript('${s.id}')">
+        <div class="saved-item-name" id="title-${s.id}">${escHtml(s.title)}</div>
+        <div class="saved-item-meta">${escHtml(s.player_char)} · ${escHtml(s.tier)} · ${dateStr}</div>
+      </div>
+      <button class="saved-rename" onclick="event.stopPropagation();renameScript('${s.id}')" title="Renommer">✏️</button>
+      <button class="saved-delete" onclick="event.stopPropagation();deleteScript('${s.id}')" title="Supprimer">✕</button>`;
+    list.appendChild(item);
+  });
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ──────────────────── IMPORT PDF ─────────────────────────────────
+async function importPDF(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  try {
+    if (!window.pdfjsLib) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+
+    // On collecte tous les items de toutes les pages avec leurs coords
+    let allItems = [];
+    let pageYOffset = 0;
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page    = await pdf.getPage(i);
+      const content = await page.getTextContent({ includeMarkedContent: false });
+      const vp      = page.getViewport({ scale: 1 });
+
+      // Convertir les coords PDF (bas=0) en coords écran (haut=0)
+      for (const item of content.items) {
+        if (!item.str || !item.transform) continue;
+        const x = item.transform[4];
+        const y = vp.height - item.transform[5]; // inverser l'axe Y
+        allItems.push({
+          str:    item.str,
+          x,
+          y:      y + pageYOffset,
+          height: item.height || 10,
+          font:   item.fontName || '',
+        });
+      }
+      pageYOffset += vp.height + 20; // espace entre pages
+    }
+
+    if (!allItems.length) throw new Error('no items');
+
+    // Trier par Y puis X
+    allItems.sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+
+    // Regrouper en lignes (items dont le Y est proche = même ligne)
+    const lines = [];
+    let curLine = null;
+    const LINE_GAP = 4; // px de tolérance pour appartenir à la même ligne
+
+    for (const item of allItems) {
+      if (!curLine || Math.abs(item.y - curLine.y) > LINE_GAP) {
+        curLine = { y: item.y, items: [] };
+        lines.push(curLine);
+      }
+      curLine.items.push(item);
+    }
+
+    // Détecter les sauts de paragraphe (écart Y > 1.5× hauteur de ligne normale)
+    const lineHeights = lines.slice(1).map((l, i) => l.y - lines[i].y).filter(h => h > 0);
+    lineHeights.sort((a, b) => a - b);
+    const medianH = lineHeights[Math.floor(lineHeights.length / 2)] || 12;
+    const PARA_GAP = medianH * 1.5;
+
+    // Construire le HTML (italic si le fontName contient "Italic" ou "Oblique")
+    const htmlLines = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Saut de paragraphe ?
+      if (i > 0 && (line.y - lines[i-1].y) > PARA_GAP) {
+        htmlLines.push(''); // ligne vide = paragraphe
+      }
+
+      let lineHTML = '';
+      for (const item of line.items) {
+        const txt = item.str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const isItalic = /italic|oblique/i.test(item.font);
+        lineHTML += isItalic ? `<em>${txt}</em>` : txt;
+      }
+      htmlLines.push(lineHTML.trim());
+    }
+
+    // Nettoyer les lignes vides multiples et afficher
+    const finalHTML = htmlLines
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+      .split('\n')
+      .map(l => l || '<br>')
+      .join('<br>');
+
+    document.getElementById('scriptInput').innerHTML = finalHTML;
+  } catch(e) {
+    alert('Impossible de lire ce PDF.\nAstuces :\n• Essayez de copier-coller le texte depuis votre lecteur PDF\n• Pour un PDF scanné (image), utilisez Google Lens ou ouvrez-le dans Google Docs pour extraire le texte.');
+    console.error('PDF import:', e);
+  }
+}
+
+// ─────────────── SCRIPT INPUT HELPERS (contenteditable) ──────────
+
+// Lit le contenu et convertit le HTML riche → texte avec markdown (*italique*)
+function getScriptText() {
+  const div = document.getElementById('scriptInput');
+  function nodeToMd(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+    const tag = node.nodeName.toLowerCase();
+    const inner = Array.from(node.childNodes).map(nodeToMd).join('');
+    if (tag === 'br')                       return '\n';
+    if (tag === 'em' || tag === 'i')        return `*${inner}*`;
+    if (tag === 'strong' || tag === 'b')    return `**${inner}**`;
+    if (['p','div','li'].includes(tag))     return inner + '\n';
+    return inner;
+  }
+  return nodeToMd(div).replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// Injecte un texte markdown dans le div comme HTML riche (pour charger un script sauvegardé)
+function setScriptText(text) {
+  const div = document.getElementById('scriptInput');
+  const html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+  div.innerHTML = html;
+}
+
+// ─────────────────────────── INIT ────────────────────────────────
+window.addEventListener('load', () => {
+  checkSupport();
+  initAuth(); // gère l'overlay auth → appelle renderSavedScripts() après connexion
+  if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+});
+
+// Pas de forçage visuel : la normalisation en majuscules se fait à la comparaison
+
+// Allow Enter key on playerChar to start
+document.getElementById('playerChar').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startRehearsal();
+});
+
+// ── Éditeur enrichi (italique uniquement) ──
+
+function applyItalic(e) {
+  e.preventDefault(); // ne pas perdre la sélection
+  document.getElementById('scriptInput').focus();
+  document.execCommand('italic', false, null);
+  updateToolbar();
+}
+
+function updateToolbar() {
+  const active = document.queryCommandState('italic');
+  document.getElementById('btnItalic').classList.toggle('active', active);
+}
+
+document.getElementById('scriptInput').addEventListener('keyup',    updateToolbar);
+document.getElementById('scriptInput').addEventListener('mouseup',  updateToolbar);
+document.getElementById('scriptInput').addEventListener('selectionchange', updateToolbar);
+
+// Collage : préserve seulement em/i, supprime tout autre formatage
+function sanitizeHTML(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.cloneNode();
+  const tag = node.nodeName.toLowerCase();
+  const children = Array.from(node.childNodes).map(sanitizeHTML);
+  const isItalic = tag === 'em' || tag === 'i' ||
+    (node.style && /italic/.test(node.style.fontStyle));
+  const isBlock = ['p','div','li','h1','h2','h3','h4','h5','h6','tr','td'].includes(tag);
+
+  if (tag === 'br') return document.createElement('br');
+
+  const wrap = isItalic ? document.createElement('em') : document.createDocumentFragment();
+  children.forEach(c => wrap.appendChild(c));
+
+  if (isBlock) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(wrap);
+    frag.appendChild(document.createElement('br'));
+    return frag;
+  }
+  return wrap;
+}
+
+document.getElementById('scriptInput').addEventListener('paste', e => {
+  e.preventDefault();
+  const html  = e.clipboardData.getData('text/html');
+  const plain = e.clipboardData.getData('text/plain');
+
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+
+  if (html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    Array.from(tmp.childNodes).forEach(n => frag.appendChild(sanitizeHTML(n)));
+    // Supprimer le dernier <br> superflu
+    if (frag.lastChild && frag.lastChild.nodeName === 'BR') frag.removeChild(frag.lastChild);
+    range.insertNode(frag);
+  } else {
+    plain.split('\n').forEach((line, i, arr) => {
+      range.insertNode(document.createTextNode(line));
+      if (i < arr.length - 1) range.insertNode(document.createElement('br'));
+    });
+  }
+
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+});
+
+
+// Entrée → <br> simple (pas de <div>)
+document.getElementById('scriptInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const br = document.createElement('br');
+    range.insertNode(br);
+    // Placer le curseur après le <br>
+    range.setStartAfter(br);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+});
+</script>
+</body>
+</html>
