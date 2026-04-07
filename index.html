@@ -667,6 +667,8 @@ button {
 .btn-skip:hover { background: #2a2a5a; }
 .btn-restart { background: var(--surface2); color: var(--red); }
 .btn-restart:hover { background: #3a1a1a; }
+.btn-edit    { background: var(--surface2); color: var(--gold); }
+.btn-edit:hover { background: var(--gold-dim); }
 .btn-quit    { background: var(--surface2); color: var(--text-muted); }
 .btn-quit:hover { background: #2a2a2a; }
 
@@ -1094,6 +1096,7 @@ button {
     <button class="btn-pause" id="pauseBtn" onclick="togglePause()">&#9646;&#9646; Pause</button>
     <button class="btn-skip"    onclick="skipCurrent()">&#9197; Passer</button>
     <button class="btn-restart" onclick="restartRehearsal()">&#8617; Recommencer</button>
+    <button class="btn-edit"    onclick="goPreview()">&#9998; Corriger le texte</button>
     <button class="btn-quit"    onclick="goSetup()">&#10005; Quitter</button>
   </div>
 
@@ -2323,6 +2326,19 @@ function goSetup() {
   renderSavedScripts();
 }
 
+function goPreview() {
+  stopListening();
+  window.speechSynthesis.cancel();
+  skipFlag = false;
+  appState = S.IDLE;
+  if (!window._previewData) { goSetup(); return; }
+  buildPreviewUI(window._previewData.parsed);
+  document.getElementById('rehearsalScreen').style.display = 'none';
+  document.getElementById('reportScreen').style.display    = 'none';
+  document.getElementById('setupScreen').style.display     = 'none';
+  document.getElementById('previewScreen').style.display   = 'block';
+}
+
 // ──────────────────────── ENTRY POINT ────────────────────────────
 async function startRehearsal() {
   const raw      = getScriptText();
@@ -2384,7 +2400,9 @@ function buildPreviewUI(parsed) {
   pvSelected = [];
 
   // Pré-classifier chaque mot selon ce que le parseur sait déjà
+  // Si item.words existe déjà (retour depuis la répétition), le conserver
   parsed.forEach(item => {
+    if (item.words && item.words.length > 0) return; // garder les corrections existantes
     item.words = [];
 
     if (item.type === 'direction') {
