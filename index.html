@@ -2608,6 +2608,34 @@ async function loadSavedScript(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+async function editSavedScript(id) {
+  const scripts = await getSavedScripts();
+  const s = scripts.find(s => s.id === id);
+  if (!s) return;
+
+  const charName = s.player_char.toUpperCase();
+  const tierKey  = s.tier;
+  const raw      = s.script;
+
+  const parsed = parseScript(raw);
+  if (!parsed.length) return;
+
+  // Pré-remplir le setup au cas où l'utilisateur clique "← Modifier le texte"
+  setScriptText(raw);
+  document.getElementById('scriptTitle').value  = s.title || '';
+  document.getElementById('playerChar').value   = charName;
+  const t = document.querySelector(`input[name="tier"][value="${tierKey}"]`);
+  if (t) t.checked = true;
+
+  window._previewData = { raw, charName, tierKey, parsed };
+
+  buildPreviewUI(parsed);
+  document.getElementById('setupScreen').style.display     = 'none';
+  document.getElementById('rehearsalScreen').style.display = 'none';
+  document.getElementById('previewScreen').style.display   = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 async function renderSavedScripts() {
   const container = document.getElementById('savedScripts');
   if (!container) return;
@@ -2624,7 +2652,7 @@ async function renderSavedScripts() {
         <div class="saved-item-name" id="title-${s.id}">${escHtml(s.title)}</div>
         <div class="saved-item-meta">${escHtml(s.player_char)} · ${escHtml(s.tier)} · ${dateStr}</div>
       </div>
-      <button class="saved-rename" onclick="event.stopPropagation();loadSavedScript('${s.id}')" title="Modifier">✏️</button>
+      <button class="saved-rename" onclick="event.stopPropagation();editSavedScript('${s.id}')" title="Modifier">✏️</button>
       <button class="saved-delete" onclick="event.stopPropagation();deleteScript('${s.id}')" title="Supprimer">✕</button>`;
     list.appendChild(item);
   });
