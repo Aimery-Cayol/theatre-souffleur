@@ -488,10 +488,10 @@ button {
 
 .replica-body { font-size: 14px; line-height: 1.65; }
 
-/* Other character replicas */
-.r-other { border-left-color: #4060aa; }
-.r-other .replica-char-name { color: var(--blue); }
-.r-other .replica-body { color: #a0b0cc; }
+/* Other character replicas — colors set via inline style vars */
+.r-other { border-left-color: var(--char-border, #4060aa); }
+.r-other .replica-char-name { color: var(--char-name, var(--blue)); }
+.r-other .replica-body { color: var(--char-body, #a0b0cc); }
 
 /* Player replicas */
 .r-player { border-left-color: #aa4060; }
@@ -1231,6 +1231,7 @@ let recognition    = null;
 let voices         = [];
 let voiceMap       = {};
 let souffleurVoice = null;
+let charColorMap   = {};
 let audioCtx       = null;
 let ttsRate        = 1.0;  // débit de parole TTS (0.5 – 2.0)
 let transcriptAccum  = '';   // dernier résultat isFinal accumulé
@@ -1457,6 +1458,24 @@ function assignVoices() {
   // Souffleur voice: prefer a voice not already used, or last voice, or null
   const usedNames = new Set(Object.values(voiceMap).filter(Boolean).map(v => v.name));
   souffleurVoice = voices.find(v => !usedNames.has(v.name)) ?? voices[voices.length - 1] ?? null;
+}
+
+const CHAR_PALETTE = [
+  { name: '#5898ff', body: '#8ab4ff', border: '#2a4a99' },
+  { name: '#c090ff', body: '#d4b0ff', border: '#6030aa' },
+  { name: '#52d8c0', body: '#80e8d4', border: '#1a7a6a' },
+  { name: '#ff9050', body: '#ffb880', border: '#aa4a10' },
+  { name: '#ffbb30', body: '#ffd080', border: '#aa7000' },
+  { name: '#ff70b0', body: '#ffaacc', border: '#aa2060' },
+  { name: '#40d8e8', body: '#80e8f4', border: '#0a7a99' },
+];
+
+function assignCharColors() {
+  const others = [...new Set(replicas.map(r => r.character))].filter(c => c !== playerChar);
+  charColorMap = {};
+  others.forEach((char, i) => {
+    charColorMap[char] = CHAR_PALETTE[i % CHAR_PALETTE.length];
+  });
 }
 
 // ─────────────────────── TEXT COMPARISON ─────────────────────────
@@ -1915,6 +1934,10 @@ function buildScriptUI() {
       div.textContent = r.text;
     } else {
       div.className = 'replica r-future ' + (r.character === playerChar ? 'r-player' : 'r-other');
+      if (r.character !== playerChar) {
+        const c = charColorMap[r.character];
+        if (c) div.style.cssText += `--char-name:${c.name};--char-body:${c.body};--char-border:${c.border};`;
+      }
 
       const nameDiv = document.createElement('div');
       nameDiv.className   = 'replica-char-name';
@@ -2452,6 +2475,7 @@ async function confirmAndStart(fromHistory = false) {
 
   await loadVoices();
   assignVoices();
+  assignCharColors();
 
   document.getElementById('setupScreen').style.display     = 'none';
   document.getElementById('previewScreen').style.display   = 'none';
