@@ -2367,18 +2367,11 @@ async function startRehearsal() {
   }
 
   window._previewData = { raw, charName, tierKey, parsed };
-
-  // Sauter la preview si le texte vient de l'historique
-  const fromHistory = !!window._loadedScriptId;
   window._loadedScriptId = null;
 
-  if (fromHistory) {
-    confirmAndStart(true);
-  } else {
-    buildPreviewUI(parsed);
-    document.getElementById('setupScreen').style.display   = 'none';
-    document.getElementById('previewScreen').style.display = 'block';
-  }
+  buildPreviewUI(parsed);
+  document.getElementById('setupScreen').style.display   = 'none';
+  document.getElementById('previewScreen').style.display = 'block';
 }
 
 // Sélection de mots dans la preview
