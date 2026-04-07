@@ -1043,6 +1043,10 @@ button {
   <p class="preview-intro">
     Vérifiez l'interprétation du texte. <strong>Sélectionnez des mots</strong> puis choisissez leur type.
   </p>
+  <div class="form-group" style="margin-bottom:.5rem">
+    <label for="pvScriptTitle">Titre du texte <span style="color:var(--text-muted);font-weight:400">(optionnel)</span></label>
+    <input type="text" id="pvScriptTitle" placeholder="Ex : Acte I — La surprise" autocomplete="off" spellcheck="false">
+  </div>
   <div id="pvToolbar" style="display:none">
     <span class="pvtb-label">Marquer la sélection comme :</span>
     <button class="pvtb-btn pvtb-text"   onclick="applyTypeToSelection('replica')">TEXTE</button>
@@ -2374,6 +2378,9 @@ async function startRehearsal() {
   window._loadedScriptId = null;
 
   buildPreviewUI(parsed);
+  // Synchroniser le titre depuis le setup vers la preview
+  const setupTitle = document.getElementById('scriptTitle')?.value.trim();
+  if (setupTitle) document.getElementById('pvScriptTitle').value = setupTitle;
   document.getElementById('setupScreen').style.display   = 'none';
   document.getElementById('previewScreen').style.display = 'block';
 }
@@ -2538,7 +2545,8 @@ async function saveScriptToHistory(scriptText, charName, tier) {
   if (!supabaseClient || !currentUser) return;
   const dateStr      = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
   const now          = new Date().toISOString();
-  const customTitle  = document.getElementById('scriptTitle')?.value.trim();
+  const customTitle  = document.getElementById('pvScriptTitle')?.value.trim()
+                    || document.getElementById('scriptTitle')?.value.trim();
   const title        = customTitle || (charName + ' — ' + dateStr);
   const hash  = simpleHash(scriptText + '|' + charName);
 
@@ -2634,6 +2642,7 @@ async function editSavedScript(id) {
   window._previewData = { raw, charName, tierKey, parsed };
 
   buildPreviewUI(parsed);
+  document.getElementById('pvScriptTitle').value           = s.title || '';
   document.getElementById('setupScreen').style.display     = 'none';
   document.getElementById('rehearsalScreen').style.display = 'none';
   document.getElementById('previewScreen').style.display   = 'block';
