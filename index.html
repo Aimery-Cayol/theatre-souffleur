@@ -990,6 +990,11 @@ button {
   </div>
 
   <div class="form-group">
+    <label for="scriptTitle">Titre du texte <span style="color:var(--text-muted);font-weight:400">(optionnel)</span></label>
+    <input type="text" id="scriptTitle" placeholder="Ex : Acte I — La surprise" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="form-group">
     <label for="playerChar">Votre personnage</label>
     <input type="text" id="playerChar" placeholder="Ex : Marie ou MARIE" autocomplete="off" spellcheck="false">
   </div>
@@ -1096,7 +1101,7 @@ button {
     <button class="btn-pause" id="pauseBtn" onclick="togglePause()">&#9646;&#9646; Pause</button>
     <button class="btn-skip"    onclick="skipCurrent()">&#9197; Passer</button>
     <button class="btn-restart" onclick="restartRehearsal()">&#8617; Recommencer</button>
-    <button class="btn-edit"    onclick="goPreview()">&#9998; Corriger le texte</button>
+    <button class="btn-edit"    onclick="goSetup()">&#9998; Modifier le texte</button>
     <button class="btn-quit"    onclick="goSetup()">&#10005; Quitter</button>
   </div>
 
@@ -2534,9 +2539,10 @@ async function getSavedScripts() {
 
 async function saveScriptToHistory(scriptText, charName, tier) {
   if (!supabaseClient || !currentUser) return;
-  const dateStr = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
-  const now   = new Date().toISOString();
-  const title = charName + ' — ' + dateStr;
+  const dateStr      = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+  const now          = new Date().toISOString();
+  const customTitle  = document.getElementById('scriptTitle')?.value.trim();
+  const title        = customTitle || (charName + ' — ' + dateStr);
   const hash  = simpleHash(scriptText + '|' + charName);
 
   // Chercher doublon via hash (léger, pas de transfert du texte complet)
@@ -2601,6 +2607,7 @@ async function loadSavedScript(id) {
   if (!s) return;
 
   setScriptText(s.script);
+  document.getElementById('scriptTitle').value = s.title || '';
   document.getElementById('playerChar').value = s.player_char;
   const t = document.querySelector(`input[name="tier"][value="${s.tier}"]`);
   if (t) t.checked = true;
