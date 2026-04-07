@@ -1463,13 +1463,16 @@ function loadVoices() {
 
 function assignVoices() {
   const others = [...new Set(replicas.map(r => r.character))].filter(c => c !== playerChar);
+  // Cycler uniquement sur les voix locales (fiables) — jamais sur les voix réseau
+  const localVoices  = voices.filter(v => v.localService);
+  const speakVoices  = localVoices.length ? localVoices : voices;
   voiceMap = {};
   others.forEach((char, i) => {
-    voiceMap[char] = voices[i % voices.length] ?? null;
+    voiceMap[char] = speakVoices[i % speakVoices.length] ?? null;
   });
   // Souffleur voice: prefer a voice not already used, or last voice, or null
   const usedNames = new Set(Object.values(voiceMap).filter(Boolean).map(v => v.name));
-  souffleurVoice = voices.find(v => !usedNames.has(v.name)) ?? voices[voices.length - 1] ?? null;
+  souffleurVoice = speakVoices.find(v => !usedNames.has(v.name)) ?? speakVoices[speakVoices.length - 1] ?? null;
 }
 
 const CHAR_PALETTE = [
@@ -1618,21 +1621,22 @@ function speak(text, voice, onDone) {
     utt.rate  = ttsRate;
     if (voice) utt.voice = voice;
 
+    let doneCalled = false;
+    const callDone = () => { if (!doneCalled) { doneCalled = true; if (!skipFlag && onDone) onDone(); } };
+
     utt.onend = () => {
       if (myGen !== speakGen) return;
-      if (!skipFlag && onDone) onDone();
+      callDone();
     };
     utt.onerror = e => {
       if (myGen !== speakGen) return;
       if (e.error === 'interrupted' || e.error === 'canceled') {
-        // Ne pas avancer si c'est volontaire (cancel() appelé par la prochaine réplique)
-        // mais avancer après 200ms si personne d'autre n'a pris la main
         const gen = myGen;
-        setTimeout(() => { if (speakGen === gen && !skipFlag && onDone) onDone(); }, 200);
+        setTimeout(() => { if (speakGen === gen) callDone(); }, 200);
         return;
       }
       console.warn('TTS error:', e.error);
-      if (!skipFlag && onDone) onDone();
+      callDone();
     };
 
     // Chrome peut rester en état "paused" après un cancel() — forcer resume()
