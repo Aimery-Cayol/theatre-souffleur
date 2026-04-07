@@ -1146,7 +1146,7 @@ const SUPABASE_URL      = 'https://osswcgyrykeammdkssnj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zc3djZ3lyeWtlYW1tZGtzc25qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTY0ODcsImV4cCI6MjA5MTA5MjQ4N30.He0zLJBShuGkrVuJkhhCkM3w8muzIvLA5g3S4yPWDh0';
 
 // ───────────────────────────── AUTH ──────────────────────────────
-let supabase    = null;
+let supabaseClient = null;
 let currentUser = null;
 let _authMode   = 'login';
 
@@ -1157,8 +1157,8 @@ function simpleHash(str) {
 }
 
 function initAuth() {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  supabase.auth.onAuthStateChange((_event, session) => {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
     currentUser = session?.user ?? null;
     const overlay  = document.getElementById('authOverlay');
     const signout  = document.getElementById('signoutBtn');
@@ -1196,9 +1196,9 @@ async function handleAuth() {
   setAuthMsg('', '');
   let error;
   if (_authMode === 'login') {
-    ({ error } = await supabase.auth.signInWithPassword({ email, password }));
+    ({ error } = await supabaseClient.auth.signInWithPassword({ email, password }));
   } else {
-    ({ error } = await supabase.auth.signUp({ email, password }));
+    ({ error } = await supabaseClient.auth.signUp({ email, password }));
     if (!error) {
       btn.disabled = false;
       setAuthMsg("Compte créé ! Vérifiez votre email pour confirmer votre inscription.", 'ok');
@@ -1210,7 +1210,7 @@ async function handleAuth() {
 }
 
 async function signOut() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
 }
 
 // ───────────────────────────── STATE ─────────────────────────────
@@ -2474,35 +2474,35 @@ async function confirmAndStart(fromHistory = false) {
 // ──────────────────── HISTORIQUE (Supabase) ──────────────────────
 
 async function getSavedScripts() {
-  if (!supabase || !currentUser) return [];
-  const { data, error } = await supabase
+  if (!supabaseClient || !currentUser) return [];
+  const { data, error } = await supabaseClient
     .from('scripts').select('*')
     .order('last_used', { ascending: false }).limit(30);
   return error ? [] : (data || []);
 }
 
 async function saveScriptToHistory(scriptText, charName, tier) {
-  if (!supabase || !currentUser) return;
+  if (!supabaseClient || !currentUser) return;
   const dateStr = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
   const now   = new Date().toISOString();
   const title = charName + ' — ' + dateStr;
   const hash  = simpleHash(scriptText + '|' + charName);
 
   // Chercher doublon via hash (léger, pas de transfert du texte complet)
-  const { data: dup } = await supabase
+  const { data: dup } = await supabaseClient
     .from('scripts').select('id').eq('script_hash', hash).maybeSingle();
   if (dup) {
-    await supabase.from('scripts').update({ last_used: now, title, tier }).eq('id', dup.id);
+    await supabaseClient.from('scripts').update({ last_used: now, title, tier }).eq('id', dup.id);
   } else {
     // Supprimer le plus ancien si on atteint 30
-    const { count } = await supabase
+    const { count } = await supabaseClient
       .from('scripts').select('id', { count: 'exact', head: true });
     if (count >= 30) {
-      const { data: oldest } = await supabase
+      const { data: oldest } = await supabaseClient
         .from('scripts').select('id').order('last_used', { ascending: true }).limit(1).single();
-      if (oldest) await supabase.from('scripts').delete().eq('id', oldest.id);
+      if (oldest) await supabaseClient.from('scripts').delete().eq('id', oldest.id);
     }
-    await supabase.from('scripts').insert({
+    await supabaseClient.from('scripts').insert({
       id: Date.now().toString(), user_id: currentUser.id,
       title, player_char: charName, tier, script: scriptText,
       script_hash: hash, last_used: now
@@ -2511,8 +2511,8 @@ async function saveScriptToHistory(scriptText, charName, tier) {
 }
 
 async function deleteScript(id) {
-  if (!supabase || !currentUser) return;
-  await supabase.from('scripts').delete().eq('id', id);
+  if (!supabaseClient || !currentUser) return;
+  await supabaseClient.from('scripts').delete().eq('id', id);
   renderSavedScripts();
 }
 
@@ -2532,8 +2532,8 @@ function renameScript(id) {
     el.contentEditable = 'false';
     const newTitle = el.textContent.trim();
     if (!newTitle) { renderSavedScripts(); return; }
-    if (!supabase || !currentUser) return;
-    await supabase.from('scripts').update({ title: newTitle }).eq('id', id);
+    if (!supabaseClient || !currentUser) return;
+    await supabaseClient.from('scripts').update({ title: newTitle }).eq('id', id);
     renderSavedScripts();
   }
 
