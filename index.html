@@ -2508,11 +2508,32 @@ async function confirmAndStart(fromHistory = false) {
   });
   replicas = result;
 
+  // DEBUG — à supprimer après diagnostic
+  console.group('[DEBUG] replicas construits');
+  const charCounts = {};
+  replicas.forEach((r, i) => {
+    if (r.type === 'replica') {
+      charCounts[r.character] = (charCounts[r.character] || 0) + 1;
+      console.log(`[${i}] ${r.character} : ${r.text.slice(0, 40)}…`);
+    } else {
+      console.log(`[${i}] (direction) ${r.text.slice(0, 40)}`);
+    }
+  });
+  console.log('Résumé :', charCounts);
+  console.groupEnd();
+
   await saveScriptToHistory(raw, charName, tierKey);
 
   await loadVoices();
   assignVoices();
   assignCharColors();
+
+  // DEBUG — voix assignées
+  console.group('[DEBUG] voix assignées');
+  console.log('voix disponibles (locales):', voices.filter(v => v.localService).map(v => v.name));
+  console.log('voix disponibles (réseau):', voices.filter(v => !v.localService).map(v => v.name));
+  Object.entries(voiceMap).forEach(([char, v]) => console.log(`  ${char} → ${v ? v.name + (v.localService ? ' (local)' : ' (réseau)') : 'null (défaut)'}`));
+  console.groupEnd();
 
   document.getElementById('setupScreen').style.display     = 'none';
   document.getElementById('previewScreen').style.display   = 'none';
