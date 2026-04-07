@@ -1812,12 +1812,11 @@ function waitForPlayer(expectedText, index, revealed = false) {
 
     if (result === 'souffleur') {
       stopListening();
-      hideErrorPanel();
       setState(S.SOUFFLEUR, '📖 Souffleur…');
       highlightReplica(index, false);
       speakSouffleur(expectedText, () => {
         if (!skipFlag && appState !== S.PAUSED) {
-          setTimeout(() => waitForPlayer(expectedText, index, true), 500); // révélée désormais
+          showErrorPanel(null, expectedText, index);
         }
       });
 
@@ -1940,7 +1939,7 @@ function buildScriptUI() {
 function showErrorPanel(score, expectedText, index) {
   const panel = document.getElementById('errorPanel');
   document.getElementById('errorScore').textContent =
-    score === 0 ? 'Aucun mot correct détecté.' : `${score} % de la réplique correct.`;
+    score === null ? '' : score === 0 ? 'Aucun mot correct détecté.' : `${score} % de la réplique correct.`;
   document.getElementById('errorActions').style.display = '';
   document.getElementById('errorPostActions').style.display = 'none';
   panel.style.display = 'block';
