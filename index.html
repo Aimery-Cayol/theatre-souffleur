@@ -2612,7 +2612,7 @@ async function loadSavedScript(id) {
   const t = document.querySelector(`input[name="tier"][value="${s.tier}"]`);
   if (t) t.checked = true;
   window._loadedScriptId = id;
-  document.getElementById('scriptInput').scrollIntoView({ behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function renderSavedScripts() {
@@ -2631,7 +2631,7 @@ async function renderSavedScripts() {
         <div class="saved-item-name" id="title-${s.id}">${escHtml(s.title)}</div>
         <div class="saved-item-meta">${escHtml(s.player_char)} · ${escHtml(s.tier)} · ${dateStr}</div>
       </div>
-      <button class="saved-rename" onclick="event.stopPropagation();renameScript('${s.id}')" title="Renommer">✏️</button>
+      <button class="saved-rename" onclick="event.stopPropagation();loadSavedScript('${s.id}')" title="Modifier">✏️</button>
       <button class="saved-delete" onclick="event.stopPropagation();deleteScript('${s.id}')" title="Supprimer">✕</button>`;
     list.appendChild(item);
   });
