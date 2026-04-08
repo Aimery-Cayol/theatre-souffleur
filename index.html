@@ -2538,10 +2538,12 @@ async function startRehearsal() {
 
 // Sélection de mots dans la preview
 let pvWords       = []; // [{el, item, wordIdx, itemIdx}]
-let pvSelected    = []; // indices dans pvWords
-let pvLastClicked = null; // dernier mot cliqué (pour Shift+clic)
-let pvDragging    = false; // glissement en cours
-let pvDragMode    = null;  // 'add' | 'remove' selon le premier mot touché
+let pvSelected           = []; // indices dans pvWords
+let pvLastClicked        = null; // dernier mot cliqué (pour Shift+clic)
+let pvDragging           = false; // glissement en cours
+let pvDragMode           = null;  // 'add' | 'remove' selon le premier mot touché
+let pvDragStart          = null;  // index du mot où le glissement a commencé
+let pvSelAtDragStart     = [];    // snapshot de pvSelected au début du glissement
 
 function clearPvSelection() {
   pvSelected.forEach(i => pvWords[i].el.classList.remove('wt-selected'));
@@ -2644,6 +2646,8 @@ function buildPreviewUI(parsed) {
           // Clic simple : toggle + début de glissement
           pvDragging = true;
           pvDragMode = alreadySelected ? 'remove' : 'add';
+          pvDragStart = globalIdx;
+          pvSelAtDragStart = [...pvSelected];
           pvLastClicked = globalIdx;
           if (pvDragMode === 'add') {
             pvSelected.push(globalIdx);
@@ -3005,27 +3009,36 @@ function setScriptText(text) {
 document.addEventListener('mouseup', () => { pvDragging = false; pvDragMode = null; });
 
 // Drag-select : on utilise mousemove + elementFromPoint pour fonctionner sur Safari/Mac
+// On sélectionne toujours le range complet [pvDragStart, mot courant] pour éviter les sauts
 document.addEventListener('mousemove', e => {
   if (!pvDragging) return;
   const el = document.elementFromPoint(e.clientX, e.clientY);
   if (!el || !el.classList.contains('pv-word')) return;
-  // Trouver l'index global du mot sous le curseur
   const entry = pvWords.find(pw => pw.el === el);
   if (!entry) return;
   const globalIdx = pvWords.indexOf(entry);
   if (globalIdx === pvLastClicked) return;
-  const inSel = pvSelected.includes(globalIdx);
-  if (pvDragMode === 'add' && !inSel) {
-    pvSelected.push(globalIdx);
-    el.classList.add('wt-selected');
-    pvLastClicked = globalIdx;
-    document.getElementById('pvToolbar').style.display = 'flex';
-  } else if (pvDragMode === 'remove' && inSel) {
-    pvSelected.splice(pvSelected.indexOf(globalIdx), 1);
-    el.classList.remove('wt-selected');
-    pvLastClicked = globalIdx;
-    document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
+  pvLastClicked = globalIdx;
+
+  // Restaurer l'état d'avant le glissement, puis appliquer le range complet
+  pvWords.forEach((pw, i) => {
+    if (pvSelAtDragStart.includes(i)) pw.el.classList.add('wt-selected');
+    else pw.el.classList.remove('wt-selected');
+  });
+  pvSelected = [...pvSelAtDragStart];
+
+  const lo = Math.min(pvDragStart, globalIdx);
+  const hi = Math.max(pvDragStart, globalIdx);
+  for (let i = lo; i <= hi; i++) {
+    if (pvDragMode === 'add' && !pvSelected.includes(i)) {
+      pvSelected.push(i);
+      pvWords[i].el.classList.add('wt-selected');
+    } else if (pvDragMode === 'remove' && pvSelected.includes(i)) {
+      pvSelected.splice(pvSelected.indexOf(i), 1);
+      pvWords[i].el.classList.remove('wt-selected');
+    }
   }
+  document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
 });
 
 window.addEventListener('load', () => {
