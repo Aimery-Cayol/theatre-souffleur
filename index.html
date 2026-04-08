@@ -288,6 +288,27 @@ button {
   display: flex;
   gap: 10px;
 }
+.mode-selector {
+  display: flex; gap: 8px; margin-bottom: 10px;
+}
+.mode-btn {
+  flex: 1; padding: 10px; border-radius: var(--radius);
+  border: 1px solid #333; background: var(--surface2);
+  color: var(--text-muted); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s; text-align: center;
+}
+.mode-btn.active { border-color: var(--gold); background: var(--gold-dim); color: var(--gold); }
+.mode-btn small { display: block; font-weight: 400; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.mode-btn.active small { color: var(--gold-light); }
+#nextBtn {
+  display: none; width: 100%; margin-top: 10px; padding: 14px;
+  background: var(--blue-dim); color: var(--blue);
+  border: 1px solid var(--blue); border-radius: var(--radius);
+  font-size: 16px; font-weight: bold; letter-spacing: .5px;
+  cursor: pointer; transition: all var(--transition);
+}
+#nextBtn:hover { background: #1e2e5a; }
+#nextBtn:active { transform: scale(0.98); }
 .btn-back {
   background: var(--surface2);
   color: var(--text-muted);
@@ -1068,6 +1089,16 @@ button {
     <button class="pvtb-btn pvtb-cancel" onclick="clearPvSelection()">✕</button>
   </div>
   <div class="preview-list" id="previewList"></div>
+  <div class="mode-selector">
+    <button class="mode-btn active" id="modeAuto" onclick="setMode('auto')">
+      🎙 Automatique
+      <small>Le logiciel écoute et valide</small>
+    </button>
+    <button class="mode-btn" id="modeManual" onclick="setMode('manual')">
+      👆 Suivi manuel
+      <small>Vous avancez réplique par réplique</small>
+    </button>
+  </div>
   <div class="pv-controls">
     <button class="btn-back" onclick="goSetup()">← Modifier le texte</button>
     <button class="btn-primary" style="flex:1" onclick="confirmAndStart()">▶ Commencer la répétition</button>
@@ -1112,6 +1143,7 @@ button {
     <div id="transcriptText">—</div>
     <div id="transcriptHint"></div>
     <button id="finishBtn" onclick="finishSpeaking()">✓ J'ai terminé ma réplique</button>
+    <button id="nextBtn"   onclick="manualAdvance()">→ Réplique suivante</button>
   </div>
 
   <div class="controls">
@@ -1261,8 +1293,10 @@ let audioCtx       = null;
 let ttsRate        = 1.0;  // débit de parole TTS (0.5 – 2.0)
 let transcriptAccum  = '';   // dernier résultat isFinal accumulé
 let latestTranscript = '';   // dernier texte vu (interim ou final) — utilisé par le timer
-let pendingResultCb      = null; // callback à déclencher quand le comédien valide
+let pendingResultCb      = null;  // callback à déclencher quand le comédien valide
 let pendingMonologueIndex = null; // index de la réplique monologue en cours
+let pendingManualIndex    = null; // index de la réplique en suivi manuel
+let rehearsalMode         = 'auto'; // 'auto' | 'manual'
 let silenceTimer     = null; // timer de détection de fin de réplique par silence
 let skipFlag       = false;
 let replicaLog     = {};  // replicaIndex → { expected, spoken, score, passed }
@@ -1804,6 +1838,17 @@ function stopListening() {
   }
 }
 
+function manualAdvance() {
+  if (pendingManualIndex === null) return;
+  const idx = pendingManualIndex;
+  pendingManualIndex = null;
+  document.getElementById('nextBtn').style.display = 'none';
+  replicaLog[idx] = { expected: replicas[idx].text, spoken: '[manuel]', score: 100, passed: true };
+  setState(S.IDLE, '→ Réplique suivante');
+  highlightReplica(idx, false);
+  setTimeout(() => processReplica(idx + 1), 300);
+}
+
 function finishSpeaking() {
   if (appState !== S.LISTENING) return;
   // Cas monologue — pas de STT, juste avancer
@@ -1867,6 +1912,16 @@ function processReplica(index) {
     highlightReplica(index, false);
     document.getElementById('transcriptText').textContent = '—';
     document.getElementById('transcriptHint').textContent = 'Lisez votre texte, puis appuyez sur « J\'ai terminé ma réplique »';
+  } else if (rehearsalMode === 'manual') {
+    // ── Suivi manuel : l'utilisateur avance lui-même ──
+    pendingManualIndex = index;
+    hideErrorPanel();
+    setState(S.LISTENING, '👆 À vous');
+    highlightReplica(index, false);
+    document.getElementById('transcriptText').textContent = '—';
+    document.getElementById('transcriptHint').textContent = 'Dites votre réplique, puis appuyez sur « Réplique suivante »';
+    document.getElementById('nextBtn').style.display = 'block';
+    document.getElementById('finishBtn').style.display = 'none';
   } else {
     // ── Player turn: STT ──
     waitForPlayer(replica.text, index);
@@ -1938,7 +1993,10 @@ function setState(s, label) {
   const [cls, text] = map[s] || ['s-idle', label || ''];
   pill.className = 'status-pill ' + cls;
   pill.textContent = text;
-  document.getElementById('finishBtn').style.display = (s === S.LISTENING) ? 'block' : 'none';
+  // finishBtn : visible en LISTENING sauf si c'est un tour manuel (nextBtn prend sa place)
+  const isManualTurn = s === S.LISTENING && pendingManualIndex !== null;
+  document.getElementById('finishBtn').style.display = (s === S.LISTENING && !isManualTurn) ? 'block' : 'none';
+  if (s !== S.LISTENING) document.getElementById('nextBtn').style.display = 'none';
 }
 
 function updateProgress() {
@@ -2309,6 +2367,7 @@ function skipCurrent() {
   window.speechSynthesis.cancel();
   skipFlag = false;
   pendingMonologueIndex = null;
+  pendingManualIndex    = null;
   hideErrorPanel();
   document.getElementById('transcriptHint').textContent = '';
 
@@ -2358,9 +2417,16 @@ function restartRehearsal() {
   document.getElementById('rehearsalScreen').style.display = 'block';
   replicaLog = {};
   pendingMonologueIndex = null;
+  pendingManualIndex    = null;
   buildScriptUI();
   currentIndex = 0;
   processReplica(0);
+}
+
+function setMode(mode) {
+  rehearsalMode = mode;
+  document.getElementById('modeAuto').classList.toggle('active', mode === 'auto');
+  document.getElementById('modeManual').classList.toggle('active', mode === 'manual');
 }
 
 function goSetup() {
@@ -2368,6 +2434,7 @@ function goSetup() {
   window.speechSynthesis.cancel();
   skipFlag = false;
   pendingMonologueIndex = null;
+  pendingManualIndex    = null;
   appState = S.IDLE;
   document.getElementById('rehearsalScreen').style.display = 'none';
   document.getElementById('reportScreen').style.display    = 'none';
@@ -2599,6 +2666,7 @@ async function confirmAndStart(fromHistory = false) {
 
   replicaLog            = {};
   pendingMonologueIndex = null;
+  pendingManualIndex    = null;
   currentIndex = 0;
   skipFlag     = false;
   appState     = S.IDLE;
