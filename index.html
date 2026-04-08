@@ -2491,12 +2491,16 @@ async function startRehearsal() {
 }
 
 // Sélection de mots dans la preview
-let pvWords = []; // [{el, item, wordIdx}]
-let pvSelected = []; // indices dans pvWords
+let pvWords       = []; // [{el, item, wordIdx, itemIdx}]
+let pvSelected    = []; // indices dans pvWords
+let pvLastClicked = null; // dernier mot cliqué (pour Shift+clic)
+let pvDragging    = false; // glissement en cours
+let pvDragMode    = null;  // 'add' | 'remove' selon le premier mot touché
 
 function clearPvSelection() {
   pvSelected.forEach(i => pvWords[i].el.classList.remove('wt-selected'));
   pvSelected = [];
+  pvLastClicked = null;
   document.getElementById('pvToolbar').style.display = 'none';
 }
 
@@ -2577,14 +2581,46 @@ function buildPreviewUI(parsed) {
       const globalIdx = pvWords.length;
       pvWords.push({ el: span, item, wordIdx, itemIdx });
 
-      span.addEventListener('click', () => {
-        const sel = pvSelected.indexOf(globalIdx);
-        if (sel === -1) {
+      span.addEventListener('mousedown', e => {
+        e.preventDefault(); // empêcher la sélection texte native
+        const alreadySelected = pvSelected.includes(globalIdx);
+        if (e.shiftKey && pvLastClicked !== null) {
+          // Shift+clic : sélectionner la plage entre pvLastClicked et globalIdx
+          const lo = Math.min(pvLastClicked, globalIdx);
+          const hi = Math.max(pvLastClicked, globalIdx);
+          for (let i = lo; i <= hi; i++) {
+            if (!pvSelected.includes(i)) {
+              pvSelected.push(i);
+              pvWords[i].el.classList.add('wt-selected');
+            }
+          }
+        } else {
+          // Clic simple : toggle + début de glissement
+          pvDragging = true;
+          pvDragMode = alreadySelected ? 'remove' : 'add';
+          pvLastClicked = globalIdx;
+          if (pvDragMode === 'add') {
+            pvSelected.push(globalIdx);
+            span.classList.add('wt-selected');
+          } else {
+            pvSelected.splice(pvSelected.indexOf(globalIdx), 1);
+            span.classList.remove('wt-selected');
+          }
+        }
+        document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
+      });
+
+      span.addEventListener('mouseenter', () => {
+        if (!pvDragging) return;
+        const inSel = pvSelected.includes(globalIdx);
+        if (pvDragMode === 'add' && !inSel) {
           pvSelected.push(globalIdx);
           span.classList.add('wt-selected');
-        } else {
-          pvSelected.splice(sel, 1);
+          pvLastClicked = globalIdx;
+        } else if (pvDragMode === 'remove' && inSel) {
+          pvSelected.splice(pvSelected.indexOf(globalIdx), 1);
           span.classList.remove('wt-selected');
+          pvLastClicked = globalIdx;
         }
         document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
       });
@@ -2955,6 +2991,9 @@ function setScriptText(text) {
 }
 
 // ─────────────────────────── INIT ────────────────────────────────
+document.addEventListener('mouseup', () => { pvDragging = false; pvDragMode = null; });
+document.addEventListener('mouseleave', () => { pvDragging = false; pvDragMode = null; });
+
 window.addEventListener('load', () => {
   checkSupport();
   initAuth(); // gère l'overlay auth → appelle renderSavedScripts() après connexion
