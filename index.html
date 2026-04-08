@@ -1096,6 +1096,11 @@ button {
 
 <!-- ===== PREVIEW ===== -->
 <div id="previewScreen">
+  <div class="form-group" style="margin-bottom:1rem">
+    <label for="pvScriptTitle">Titre du texte <span style="color:var(--text-muted);font-weight:400">(optionnel)</span></label>
+    <input type="text" id="pvScriptTitle" placeholder="Ex : Acte I — La surprise" autocomplete="off" spellcheck="false">
+  </div>
+
   <p class="preview-intro">
     Vérifiez l'interprétation du texte. Cliquez sur un mot, <strong>glissez</strong> pour en sélectionner plusieurs, ou utilisez <strong>¶</strong> pour tout un paragraphe — puis choisissez son type.
   </p>
@@ -1117,10 +1122,6 @@ button {
       <span class="pv-legend-chip" style="background:#0b2e18;color:#52d8a0;border:1px solid #1a7a4a">MONOLOGUE</span>
       <span class="pv-legend-desc">Long texte validé manuellement — pas d'écoute, vous cliquez « J'ai terminé » quand vous avez fini.</span>
     </div>
-  </div>
-  <div class="form-group" style="margin-bottom:.5rem">
-    <label for="pvScriptTitle">Titre du texte <span style="color:var(--text-muted);font-weight:400">(optionnel)</span></label>
-    <input type="text" id="pvScriptTitle" placeholder="Ex : Acte I — La surprise" autocomplete="off" spellcheck="false">
   </div>
   <div id="pvToolbar" style="display:none">
     <span class="pvtb-label">Marquer la sélection comme :</span>
@@ -1888,21 +1889,30 @@ function manualAdvance() {
   if (pendingManualIndex === null) return;
   const idx = pendingManualIndex;
   pendingManualIndex = null;
+  stopListening();
   document.getElementById('nextBtn').style.display = 'none';
-  replicaLog[idx] = { expected: replicas[idx].text, spoken: '[manuel]', score: 100, passed: true };
+  // Ne pas écraser un log existant (si STT a déjà évalué la réplique)
+  if (!replicaLog[idx]) {
+    replicaLog[idx] = { expected: replicas[idx].text, spoken: '[manuel]', score: 100, passed: true };
+  }
   setState(S.IDLE, '→ Réplique suivante');
+  hideErrorPanel();
   highlightReplica(idx, false);
   setTimeout(() => processReplica(idx + 1), 300);
 }
 
 function finishSpeaking() {
   if (appState !== S.LISTENING) return;
-  // Cas monologue — pas de STT, juste avancer
   if (pendingMonologueIndex !== null) {
     const idx = pendingMonologueIndex;
     pendingMonologueIndex = null;
-    replicaLog[idx] = { expected: replicas[idx].text, spoken: '[monologue]', score: 100, passed: true };
+    stopListening();
+    // Ne pas écraser un log existant si STT a déjà évalué la réplique
+    if (!replicaLog[idx]) {
+      replicaLog[idx] = { expected: replicas[idx].text, spoken: '[monologue]', score: 100, passed: true };
+    }
     setState(S.IDLE, '✓ Monologue terminé');
+    hideErrorPanel();
     highlightReplica(idx, false);
     setTimeout(() => processReplica(idx + 1), 500);
     return;
@@ -1951,24 +1961,26 @@ function processReplica(index) {
       setTimeout(() => processReplica(index + 1), 350);
     });
   } else if (replica.type === 'monologue') {
-    // ── Monologue : validation manuelle uniquement ──
+    // ── Monologue : STT écoute, mais validation = bouton ──
     stopListening();
     pendingMonologueIndex = index;
     hideErrorPanel();
     setState(S.LISTENING, '📖 Monologue');
-    highlightReplica(index, false);
+    highlightReplica(index, true);
     document.getElementById('transcriptText').textContent = '—';
-    document.getElementById('transcriptHint').textContent = 'Lisez votre texte, puis appuyez sur « J\'ai terminé ma réplique »';
+    document.getElementById('transcriptHint').textContent = 'Dites votre réplique, puis appuyez sur « J\'ai terminé ma réplique »';
+    waitForPlayerManual(replica.text, index);
   } else if (rehearsalMode === 'manual') {
-    // ── Suivi manuel : l'utilisateur avance lui-même ──
+    // ── Suivi manuel : STT écoute, mais validation = bouton ──
     pendingManualIndex = index;
     hideErrorPanel();
     setState(S.LISTENING, '👆 À vous');
-    highlightReplica(index, false);
+    highlightReplica(index, true);
     document.getElementById('transcriptText').textContent = '—';
     document.getElementById('transcriptHint').textContent = 'Dites votre réplique, puis appuyez sur « Réplique suivante »';
     document.getElementById('nextBtn').style.display = 'block';
     document.getElementById('finishBtn').style.display = 'none';
+    waitForPlayerManual(replica.text, index);
   } else {
     // ── Player turn: STT ──
     waitForPlayer(replica.text, index);
@@ -2019,6 +2031,68 @@ function waitForPlayer(expectedText, index, revealed = false) {
       replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: false };
       setState(S.IDLE, '✗ Pas tout à fait…');
       showErrorPanel(result.score, expectedText, index);
+    }
+  });
+}
+
+// ── Mode manuel/monologue : le STT écoute et évalue, mais l'avance est manuelle ──
+function waitForPlayerManual(expectedText, index) {
+  if (skipFlag || appState === S.PAUSED) return;
+  // Vérifier qu'on est toujours sur cette réplique
+  const isMonologue = pendingMonologueIndex === index;
+  const isManual    = pendingManualIndex    === index;
+  if (!isMonologue && !isManual) return;
+
+  transcriptAccum  = '';
+  latestTranscript = '';
+  document.getElementById('transcriptText').textContent = '—';
+
+  startListening(expectedText, (transcript) => {
+    // Vérifier qu'on n'a pas déjà avancé (bouton cliqué pendant l'écoute)
+    const stillPending = pendingMonologueIndex === index || pendingManualIndex === index;
+    if (!stillPending) return;
+
+    const result = compareTexts(transcript, expectedText);
+
+    if (result === 'souffleur') {
+      stopListening();
+      setState(S.SOUFFLEUR, '📖 Souffleur…');
+      highlightReplica(index, false);
+      speakSouffleur(expectedText, () => {
+        if (skipFlag || appState === S.PAUSED) return;
+        const still2 = pendingMonologueIndex === index || pendingManualIndex === index;
+        if (!still2) return;
+        showErrorPanel(null, expectedText, index);
+        const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
+        setState(S.LISTENING, lbl);
+        if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
+        waitForPlayerManual(expectedText, index);
+      });
+
+    } else if (result.match) {
+      stopListening();
+      hideErrorPanel();
+      replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: true };
+      document.getElementById('transcriptText').textContent = transcript;
+      document.getElementById('transcriptHint').textContent = result.score === 100 ? '✓ Parfait ! Cliquez le bouton pour continuer.' : `✓ Accepté (${result.score} %). Cliquez le bouton pour continuer.`;
+      const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
+      setState(S.LISTENING, lbl);
+      if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
+      // Continuer à écouter — l'utilisateur avance via le bouton
+      waitForPlayerManual(expectedText, index);
+
+    } else {
+      stopListening();
+      playError();
+      highlightReplica(index, false, true);
+      replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: false };
+      document.getElementById('transcriptText').textContent = transcript;
+      const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
+      setState(S.LISTENING, lbl);
+      if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
+      showErrorPanel(result.score, expectedText, index);
+      // Continuer à écouter — l'utilisateur avance via le bouton
+      waitForPlayerManual(expectedText, index);
     }
   });
 }
@@ -2227,7 +2301,11 @@ function retryLine() {
   const expectedText = panel._expected;
   const index        = panel._index;
   hideErrorPanel();
-  waitForPlayer(expectedText, index);
+  if (pendingMonologueIndex === index || pendingManualIndex === index) {
+    waitForPlayerManual(expectedText, index);
+  } else {
+    waitForPlayer(expectedText, index);
+  }
 }
 
 // ─────────────────────── RAPPORT ─────────────────────────────────
