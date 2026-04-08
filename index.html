@@ -2655,20 +2655,6 @@ function buildPreviewUI(parsed) {
         document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
       });
 
-      span.addEventListener('mouseenter', () => {
-        if (!pvDragging) return;
-        const inSel = pvSelected.includes(globalIdx);
-        if (pvDragMode === 'add' && !inSel) {
-          pvSelected.push(globalIdx);
-          span.classList.add('wt-selected');
-          pvLastClicked = globalIdx;
-        } else if (pvDragMode === 'remove' && inSel) {
-          pvSelected.splice(pvSelected.indexOf(globalIdx), 1);
-          span.classList.remove('wt-selected');
-          pvLastClicked = globalIdx;
-        }
-        document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
-      });
 
       div.appendChild(span);
     });
@@ -3037,7 +3023,30 @@ function setScriptText(text) {
 
 // ─────────────────────────── INIT ────────────────────────────────
 document.addEventListener('mouseup', () => { pvDragging = false; pvDragMode = null; });
-document.addEventListener('mouseleave', () => { pvDragging = false; pvDragMode = null; });
+
+// Drag-select : on utilise mousemove + elementFromPoint pour fonctionner sur Safari/Mac
+document.addEventListener('mousemove', e => {
+  if (!pvDragging) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (!el || !el.classList.contains('pv-word')) return;
+  // Trouver l'index global du mot sous le curseur
+  const entry = pvWords.find(pw => pw.el === el);
+  if (!entry) return;
+  const globalIdx = pvWords.indexOf(entry);
+  if (globalIdx === pvLastClicked) return;
+  const inSel = pvSelected.includes(globalIdx);
+  if (pvDragMode === 'add' && !inSel) {
+    pvSelected.push(globalIdx);
+    el.classList.add('wt-selected');
+    pvLastClicked = globalIdx;
+    document.getElementById('pvToolbar').style.display = 'flex';
+  } else if (pvDragMode === 'remove' && inSel) {
+    pvSelected.splice(pvSelected.indexOf(globalIdx), 1);
+    el.classList.remove('wt-selected');
+    pvLastClicked = globalIdx;
+    document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
+  }
+});
 
 window.addEventListener('load', () => {
   checkSupport();
