@@ -3098,7 +3098,17 @@ function setScriptText(text) {
 }
 
 // ─────────────────────────── INIT ────────────────────────────────
-document.addEventListener('pointerup',    () => { pvDragging = false; pvDragMode = null; });
+document.addEventListener('pointerup', e => {
+  if (pvDragging) { pvDragging = false; pvDragMode = null; return; }
+  // Clic en dehors d'un mot ou de la toolbar → désélectionner tout
+  if (pvSelected.length && e.pointerType === 'mouse') {
+    const target = e.target;
+    const inWord    = target.classList.contains('pv-word');
+    const inToolbar = !!target.closest('#pvToolbar');
+    const inPara    = target.classList.contains('pv-select-para');
+    if (!inWord && !inToolbar && !inPara) clearPvSelection();
+  }
+});
 document.addEventListener('pointercancel', () => { pvDragging = false; pvDragMode = null; });
 
 // Drag-select via Pointer Events (fonctionne sur Safari/Mac/Chrome sans capture implicite)
