@@ -197,9 +197,31 @@ button {
 .preview-intro {
   font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   line-height: 1.6;
 }
+.pv-legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 14px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid #2a2a3e;
+  border-radius: var(--radius);
+}
+.pv-legend-item {
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12px; line-height: 1.4; width: calc(50% - 4px);
+}
+.pv-legend-chip {
+  flex-shrink: 0; padding: 1px 7px; border-radius: 10px;
+  font-size: 11px; font-weight: bold; white-space: nowrap; margin-top: 1px;
+}
+.pv-legend-desc { color: var(--text-muted); }
+.pv-mode-info {
+  margin-bottom: 8px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid #2a2a3e;
+  border-radius: var(--radius); font-size: 12px;
+  color: var(--text-muted); line-height: 1.5;
+}
+.pv-mode-info strong { color: var(--text); }
 .preview-list {
   display: flex;
   flex-direction: column;
@@ -1074,8 +1096,27 @@ button {
 <!-- ===== PREVIEW ===== -->
 <div id="previewScreen">
   <p class="preview-intro">
-    Vérifiez l'interprétation du texte. <strong>Sélectionnez des mots</strong> puis choisissez leur type.
+    Vérifiez l'interprétation du texte. Cliquez sur un mot, <strong>glissez</strong> pour en sélectionner plusieurs, ou utilisez <strong>¶</strong> pour tout un paragraphe — puis choisissez son type.
   </p>
+
+  <div class="pv-legend">
+    <div class="pv-legend-item">
+      <span class="pv-legend-chip" style="background:#2a1020;color:#ff9ab3;border:1px solid #aa4060">TEXTE</span>
+      <span class="pv-legend-desc">Réplique que vous devez dire à voix haute. Le logiciel écoute et vérifie.</span>
+    </div>
+    <div class="pv-legend-item">
+      <span class="pv-legend-chip" style="background:#101828;color:#7090cc;border:1px solid #4060aa">DIDASCALIE</span>
+      <span class="pv-legend-desc">Indication de mise en scène. Ignorée pendant la répétition.</span>
+    </div>
+    <div class="pv-legend-item">
+      <span class="pv-legend-chip" style="background:#1a1a08;color:#d4a843;border:1px solid #d4a843">PERSONNAGE</span>
+      <span class="pv-legend-desc">Nom du personnage en tête de réplique. Ignoré à la lecture.</span>
+    </div>
+    <div class="pv-legend-item">
+      <span class="pv-legend-chip" style="background:#0b2e18;color:#52d8a0;border:1px solid #1a7a4a">MONOLOGUE</span>
+      <span class="pv-legend-desc">Long texte validé manuellement — pas d'écoute, vous cliquez « J'ai terminé » quand vous avez fini.</span>
+    </div>
+  </div>
   <div class="form-group" style="margin-bottom:.5rem">
     <label for="pvScriptTitle">Titre du texte <span style="color:var(--text-muted);font-weight:400">(optionnel)</span></label>
     <input type="text" id="pvScriptTitle" placeholder="Ex : Acte I — La surprise" autocomplete="off" spellcheck="false">
@@ -1089,6 +1130,10 @@ button {
     <button class="pvtb-btn pvtb-cancel" onclick="clearPvSelection()">✕</button>
   </div>
   <div class="preview-list" id="previewList"></div>
+  <div class="pv-mode-info">
+    <strong>🎙 Automatique</strong> — le micro est actif pendant votre tour. Le logiciel analyse ce que vous dites et valide automatiquement si c'est correct. Dites <em>« ok texte »</em> pour entendre votre réplique.<br><br>
+    <strong>👆 Suivi manuel</strong> — pas de micro. Votre texte s'affiche, vous le dites à voix haute à votre rythme, puis vous cliquez <em>« Réplique suivante »</em> pour avancer. Idéal pour un premier passage ou sans connexion micro.
+  </div>
   <div class="mode-selector">
     <button class="mode-btn active" id="modeAuto" onclick="setMode('auto')">
       🎙 Automatique
