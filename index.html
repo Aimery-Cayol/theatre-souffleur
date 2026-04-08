@@ -2042,7 +2042,7 @@ function waitForPlayer(expectedText, index, revealed = false) {
 }
 
 // ── Mode manuel/monologue : le STT écoute et évalue, mais l'avance est manuelle ──
-function waitForPlayerManual(expectedText, index) {
+function waitForPlayerManual(expectedText, index, isRestart = false) {
   if (skipFlag || appState === S.PAUSED) return;
   // Vérifier qu'on est toujours sur cette réplique
   const isMonologue = pendingMonologueIndex === index;
@@ -2051,7 +2051,9 @@ function waitForPlayerManual(expectedText, index) {
 
   transcriptAccum  = '';
   latestTranscript = '';
-  document.getElementById('transcriptText').textContent = '—';
+  // Ne pas effacer le transcript affiché lors d'un redémarrage — l'utilisateur
+  // doit pouvoir lire ce qu'il a dit avant de cliquer "Réplique suivante"
+  if (!isRestart) document.getElementById('transcriptText').textContent = '—';
 
   startListening(expectedText, (transcript) => {
     // Vérifier qu'on n'a pas déjà avancé (bouton cliqué pendant l'écoute)
@@ -2072,7 +2074,7 @@ function waitForPlayerManual(expectedText, index) {
         const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
         setState(S.LISTENING, lbl);
         if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
-        waitForPlayerManual(expectedText, index);
+        waitForPlayerManual(expectedText, index, true);
       });
 
     } else if (result.match) {
@@ -2085,7 +2087,7 @@ function waitForPlayerManual(expectedText, index) {
       setState(S.LISTENING, lbl);
       if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
       // Continuer à écouter — l'utilisateur avance via le bouton
-      waitForPlayerManual(expectedText, index);
+      waitForPlayerManual(expectedText, index, true);
 
     } else {
       stopListening();
@@ -2098,7 +2100,7 @@ function waitForPlayerManual(expectedText, index) {
       if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
       showErrorPanel(result.score, expectedText, index);
       // Continuer à écouter — l'utilisateur avance via le bouton
-      waitForPlayerManual(expectedText, index);
+      waitForPlayerManual(expectedText, index, true);
     }
   });
 }
