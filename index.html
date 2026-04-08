@@ -2716,9 +2716,13 @@ function buildPreviewUI(parsed) {
       const globalIdx = pvWords.length;
       pvWords.push({ el: span, item, wordIdx, itemIdx });
 
-      span.addEventListener('dragstart', e => e.preventDefault()); // bloquer drag natif navigateur
-      span.addEventListener('mousedown', e => {
-        e.preventDefault(); // empêcher la sélection texte native
+      span.addEventListener('pointerdown', e => {
+        if (e.pointerType !== 'mouse') return;
+        e.preventDefault();
+        // Libérer la capture implicite du pointeur pour que pointermove
+        // continue à cibler l'élément sous le curseur, pas celui-ci
+        span.releasePointerCapture(e.pointerId);
+
         const alreadySelected = pvSelected.includes(globalIdx);
         if (e.shiftKey && pvLastClicked !== null) {
           // Shift+clic : sélectionner la plage entre pvLastClicked et globalIdx
@@ -3094,16 +3098,20 @@ function setScriptText(text) {
 }
 
 // ─────────────────────────── INIT ────────────────────────────────
-document.addEventListener('mouseup', () => { pvDragging = false; pvDragMode = null; });
+document.addEventListener('pointerup',    () => { pvDragging = false; pvDragMode = null; });
+document.addEventListener('pointercancel', () => { pvDragging = false; pvDragMode = null; });
 
-// Drag-select : on utilise mousemove + elementFromPoint pour fonctionner sur Safari/Mac
-// On sélectionne toujours le range complet [pvDragStart, mot courant] pour éviter les sauts
-document.addEventListener('mousemove', e => {
-  if (!pvDragging) return;
+// Drag-select via Pointer Events (fonctionne sur Safari/Mac/Chrome sans capture implicite)
+// Sélectionne toujours le range complet [pvDragStart, mot courant] pour éviter les sauts
+document.addEventListener('pointermove', e => {
+  if (!pvDragging || e.pointerType !== 'mouse') return;
   e.preventDefault();
   const el = document.elementFromPoint(e.clientX, e.clientY);
-  if (!el || !el.classList.contains('pv-word')) return;
-  const entry = pvWords.find(pw => pw.el === el);
+  if (!el) return;
+  // Remonter jusqu'à un .pv-word si on atterrit sur un enfant
+  const wordEl = el.classList.contains('pv-word') ? el : el.closest('.pv-word');
+  if (!wordEl) return;
+  const entry = pvWords.find(pw => pw.el === wordEl);
   if (!entry) return;
   const globalIdx = pvWords.indexOf(entry);
   if (globalIdx === pvLastClicked) return;
