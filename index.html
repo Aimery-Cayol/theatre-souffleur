@@ -571,7 +571,8 @@ button {
 }
 .r-active.r-listening .replica-char-name { color: var(--green) !important; }
 /* Garder le texte du joueur flouté pendant qu'il doit le réciter */
-.r-active.r-listening.r-player .replica-body { filter: blur(5px) !important; user-select: none; }
+.r-active.r-listening.r-player .replica-body,
+.r-active.r-listening.r-monologue .replica-body { filter: blur(5px) !important; user-select: none; }
 
 .r-done { opacity: 0.35; }
 .r-done:hover { opacity: 0.65; cursor: pointer; border-left-color: var(--gold) !important; transition: opacity 0.15s, border-left-color 0.15s; }
@@ -1341,6 +1342,7 @@ let ttsRate        = 1.0;  // débit de parole TTS (0.5 – 2.0)
 let transcriptAccum  = '';   // dernier résultat isFinal accumulé
 let latestTranscript = '';   // dernier texte vu (interim ou final) — utilisé par le timer
 let pendingResultCb      = null;  // callback à déclencher quand le comédien valide
+let recGen               = 0;     // compteur de génération STT — invalide les onend/onerror périmés
 let pendingMonologueIndex = null; // index de la réplique monologue en cours
 let pendingManualIndex    = null; // index de la réplique en suivi manuel
 let rehearsalMode         = 'auto'; // 'auto' | 'manual'
@@ -1812,6 +1814,9 @@ function startListening(expectedText, onResult) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { showError('Reconnaissance vocale non disponible. Utilisez Chrome.'); return; }
 
+  // Incrémenter la génération AVANT d'abort — le onend de l'ancienne instance verra myGen < recGen et ne fera rien
+  const myGen = ++recGen;
+
   // Arrêter le micro sans toucher au silenceTimer
   if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
   pendingResultCb = onResult;
@@ -1854,6 +1859,7 @@ function startListening(expectedText, onResult) {
   };
 
   recognition.onerror = (event) => {
+    if (myGen !== recGen) return; // instance périmée
     if (skipFlag) return;
     if (event.error === 'not-allowed') {
       setState(S.IDLE);
@@ -1866,9 +1872,9 @@ function startListening(expectedText, onResult) {
   };
 
   recognition.onend = () => {
-    // En mode continuous, onend ne devrait pas arriver sauf si on a appelé abort()
+    if (myGen !== recGen) return; // instance périmée — ne pas écraser recognition ni relancer
     recognition = null;
-    if (appState === S.LISTENING && !skipFlag && pendingMonologueIndex === null && pendingManualIndex === null) {
+    if (appState === S.LISTENING && !skipFlag) {
       setTimeout(() => startListening(expectedText, onResult), 200);
     }
   };
