@@ -230,6 +230,7 @@ button {
   overflow-y: auto;
   margin-bottom: 20px;
   padding-right: 4px;
+  user-select: none;
 }
 .pv-item {
   display: flex;
@@ -2629,6 +2630,7 @@ function buildPreviewUI(parsed) {
       const globalIdx = pvWords.length;
       pvWords.push({ el: span, item, wordIdx, itemIdx });
 
+      span.addEventListener('dragstart', e => e.preventDefault()); // bloquer drag natif navigateur
       span.addEventListener('mousedown', e => {
         e.preventDefault(); // empêcher la sélection texte native
         const alreadySelected = pvSelected.includes(globalIdx);
@@ -3012,6 +3014,7 @@ document.addEventListener('mouseup', () => { pvDragging = false; pvDragMode = nu
 // On sélectionne toujours le range complet [pvDragStart, mot courant] pour éviter les sauts
 document.addEventListener('mousemove', e => {
   if (!pvDragging) return;
+  e.preventDefault();
   const el = document.elementFromPoint(e.clientX, e.clientY);
   if (!el || !el.classList.contains('pv-word')) return;
   const entry = pvWords.find(pw => pw.el === el);
