@@ -261,6 +261,7 @@ button {
 .pvtb-text   { background: #2a1020; color: #ff9ab3; border-color: #aa4060; }
 .pvtb-dir    { background: #101828; color: #7090cc; border-color: #4060aa; }
 .pvtb-char   { background: #1a1a08; color: var(--gold); border-color: var(--gold); }
+.pvtb-mono   { background: #0b2e18; color: #52d8a0; border-color: #1a7a4a; }
 .pvtb-cancel { background: none; color: #666; border-color: #444; font-weight: normal; }
 
 .pv-word {
@@ -274,8 +275,15 @@ button {
 .pv-word.wt-replica    { color: var(--text); }
 .pv-word.wt-direction  { color: #7090cc; font-style: italic; background: rgba(64,96,170,0.12); }
 .pv-word.wt-character  { color: var(--gold); font-weight: bold; }
+.pv-word.wt-monologue  { color: #52d8a0; font-weight: bold; background: rgba(82,216,160,0.1); }
 .pv-word.wt-selected   { background: rgba(212,168,67,0.3) !important; outline: 1px solid var(--gold); }
 .pv-word:hover { background: rgba(255,255,255,0.07); }
+.pv-select-para {
+  display: inline-block; cursor: pointer; font-size: 10px; color: var(--text-muted);
+  padding: 1px 6px; border: 1px solid #333; border-radius: 10px; margin-right: 6px;
+  user-select: none; vertical-align: middle; transition: color .15s, border-color .15s;
+}
+.pv-select-para:hover { color: var(--gold); border-color: var(--gold); }
 .pv-controls {
   display: flex;
   gap: 10px;
@@ -497,6 +505,10 @@ button {
 .r-player { border-left-color: #aa4060; }
 .r-player .replica-char-name { color: #ff9ab3; }
 .r-player .replica-body { color: #ccaab0; }
+/* Monologue replicas */
+.r-monologue { border-left-color: #1a7a4a; }
+.r-monologue .replica-char-name { color: #52d8a0; }
+.r-monologue .replica-body { color: #a0d8c0; }
 
 /* Active replica */
 .r-active {
@@ -1052,6 +1064,7 @@ button {
     <button class="pvtb-btn pvtb-text"   onclick="applyTypeToSelection('replica')">TEXTE</button>
     <button class="pvtb-btn pvtb-dir"    onclick="applyTypeToSelection('direction')">DIDASCALIE</button>
     <button class="pvtb-btn pvtb-char"   onclick="applyTypeToSelection('character')">PERSONNAGE</button>
+    <button class="pvtb-btn pvtb-mono"   onclick="applyTypeToSelection('monologue')">MONOLOGUE</button>
     <button class="pvtb-btn pvtb-cancel" onclick="clearPvSelection()">✕</button>
   </div>
   <div class="preview-list" id="previewList"></div>
@@ -1248,7 +1261,8 @@ let audioCtx       = null;
 let ttsRate        = 1.0;  // débit de parole TTS (0.5 – 2.0)
 let transcriptAccum  = '';   // dernier résultat isFinal accumulé
 let latestTranscript = '';   // dernier texte vu (interim ou final) — utilisé par le timer
-let pendingResultCb  = null; // callback à déclencher quand le comédien valide
+let pendingResultCb      = null; // callback à déclencher quand le comédien valide
+let pendingMonologueIndex = null; // index de la réplique monologue en cours
 let silenceTimer     = null; // timer de détection de fin de réplique par silence
 let skipFlag       = false;
 let replicaLog     = {};  // replicaIndex → { expected, spoken, score, passed }
@@ -1792,6 +1806,16 @@ function stopListening() {
 
 function finishSpeaking() {
   if (appState !== S.LISTENING) return;
+  // Cas monologue — pas de STT, juste avancer
+  if (pendingMonologueIndex !== null) {
+    const idx = pendingMonologueIndex;
+    pendingMonologueIndex = null;
+    replicaLog[idx] = { expected: replicas[idx].text, spoken: '[monologue]', score: 100, passed: true };
+    setState(S.IDLE, '✓ Monologue terminé');
+    highlightReplica(idx, false);
+    setTimeout(() => processReplica(idx + 1), 500);
+    return;
+  }
   clearSilenceTimer();
   const cb         = pendingResultCb;
   const transcript = latestTranscript || transcriptAccum;
@@ -1835,6 +1859,14 @@ function processReplica(index) {
       if (skipFlag) { skipFlag = false; return; }
       setTimeout(() => processReplica(index + 1), 350);
     });
+  } else if (replica.type === 'monologue') {
+    // ── Monologue : validation manuelle uniquement ──
+    pendingMonologueIndex = index;
+    hideErrorPanel();
+    setState(S.LISTENING, '📖 Monologue');
+    highlightReplica(index, false);
+    document.getElementById('transcriptText').textContent = '—';
+    document.getElementById('transcriptHint').textContent = 'Lisez votre texte, puis appuyez sur « J\'ai terminé ma réplique »';
   } else {
     // ── Player turn: STT ──
     waitForPlayer(replica.text, index);
@@ -1959,7 +1991,10 @@ function buildScriptUI() {
       div.className   = 'direction r-future';
       div.textContent = r.text;
     } else {
-      div.className = 'replica r-future ' + (r.character === playerChar ? 'r-player' : 'r-other');
+      const roleClass = r.character !== playerChar ? 'r-other'
+                      : r.type === 'monologue'     ? 'r-monologue'
+                      : 'r-player';
+      div.className = 'replica r-future ' + roleClass;
       if (r.character !== playerChar) {
         const c = charColorMap[r.character];
         if (c) div.style.cssText += `--char-name:${c.name};--char-body:${c.body};--char-border:${c.border};`;
@@ -2137,7 +2172,7 @@ function buildExpectedWithDiff(expectedText, spokenText) {
 function showReport() {
   const allPlayerReplicas = replicas
     .map((r, i) => ({ replica: r, index: i }))
-    .filter(({ replica }) => replica.type === 'replica' && replica.character === playerChar);
+    .filter(({ replica }) => (replica.type === 'replica' || replica.type === 'monologue') && replica.character === playerChar);
 
   const total   = allPlayerReplicas.length;
   const failed  = allPlayerReplicas.filter(({ index }) => replicaLog[index] && !replicaLog[index].passed).length;
@@ -2273,6 +2308,7 @@ function skipCurrent() {
   stopListening();
   window.speechSynthesis.cancel();
   skipFlag = false;
+  pendingMonologueIndex = null;
   hideErrorPanel();
   document.getElementById('transcriptHint').textContent = '';
 
@@ -2321,6 +2357,7 @@ function restartRehearsal() {
   document.getElementById('reportScreen').style.display = 'none';
   document.getElementById('rehearsalScreen').style.display = 'block';
   replicaLog = {};
+  pendingMonologueIndex = null;
   buildScriptUI();
   currentIndex = 0;
   processReplica(0);
@@ -2330,6 +2367,7 @@ function goSetup() {
   stopListening();
   window.speechSynthesis.cancel();
   skipFlag = false;
+  pendingMonologueIndex = null;
   appState = S.IDLE;
   document.getElementById('rehearsalScreen').style.display = 'none';
   document.getElementById('reportScreen').style.display    = 'none';
@@ -2395,6 +2433,17 @@ function clearPvSelection() {
   document.getElementById('pvToolbar').style.display = 'none';
 }
 
+function selectAllInItem(itemIdx) {
+  clearPvSelection();
+  pvWords.forEach((pw, globalIdx) => {
+    if (pw.itemIdx === itemIdx) {
+      pvSelected.push(globalIdx);
+      pw.el.classList.add('wt-selected');
+    }
+  });
+  document.getElementById('pvToolbar').style.display = pvSelected.length ? 'flex' : 'none';
+}
+
 function applyTypeToSelection(type) {
   pvSelected.forEach(i => {
     const { item, wordIdx } = pvWords[i];
@@ -2445,13 +2494,21 @@ function buildPreviewUI(parsed) {
     div.style.flexWrap = 'wrap';
     div.style.lineHeight = '1.9';
 
+    // Bouton ¶ — sélectionne tout le paragraphe d'un clic
+    const paraBtn = document.createElement('span');
+    paraBtn.className = 'pv-select-para';
+    paraBtn.textContent = '¶';
+    paraBtn.title = 'Sélectionner tout le paragraphe';
+    paraBtn.addEventListener('click', () => selectAllInItem(itemIdx));
+    div.appendChild(paraBtn);
+
     item.words.forEach((wordObj, wordIdx) => {
       const span = document.createElement('span');
       span.className = 'pv-word wt-' + wordObj.type;
       span.textContent = wordObj.w + ' ';
 
       const globalIdx = pvWords.length;
-      pvWords.push({ el: span, item, wordIdx });
+      pvWords.push({ el: span, item, wordIdx, itemIdx });
 
       span.addEventListener('click', () => {
         const sel = pvSelected.indexOf(globalIdx);
@@ -2496,7 +2553,8 @@ async function confirmAndStart(fromHistory = false) {
       if (!curWords.length) return;
       const text = curWords.join(' ').trim();
       if (text && curType !== 'character') {
-        result.push({ type: curType, character: curType === 'replica' ? item.character : null, text });
+        const isPlayerLine = curType === 'replica' || curType === 'monologue';
+        result.push({ type: curType, character: isPlayerLine ? item.character : null, text });
       }
       curWords = [];
     };
@@ -2539,7 +2597,8 @@ async function confirmAndStart(fromHistory = false) {
   document.getElementById('previewScreen').style.display   = 'none';
   document.getElementById('rehearsalScreen').style.display = 'block';
 
-  replicaLog   = {};
+  replicaLog            = {};
+  pendingMonologueIndex = null;
   currentIndex = 0;
   skipFlag     = false;
   appState     = S.IDLE;
