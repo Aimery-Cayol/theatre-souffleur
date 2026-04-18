@@ -1894,17 +1894,27 @@ function stopListening() {
 function manualAdvance() {
   if (pendingManualIndex === null) return;
   const idx = pendingManualIndex;
+  const expectedText = replicas[idx].text;
   pendingManualIndex = null;
   stopListening();
   document.getElementById('nextBtn').style.display = 'none';
-  // Ne pas écraser un log existant (si STT a déjà évalué la réplique)
-  if (!replicaLog[idx]) {
-    replicaLog[idx] = { expected: replicas[idx].text, spoken: '[manuel]', score: 100, passed: true };
-  }
-  setState(S.IDLE, '→ Réplique suivante');
   hideErrorPanel();
+
+  // Évaluer ce qui a été dit au moment du clic
+  const transcript = latestTranscript || transcriptAccum || '';
+  if (transcript) {
+    const result = compareTexts(transcript, expectedText);
+    replicaLog[idx] = { expected: expectedText, spoken: transcript, score: result.score, passed: result.match === true };
+    document.getElementById('transcriptHint').textContent =
+      result.match ? (result.score === 100 ? '✓ Parfait !' : `✓ Accepté (${result.score} %)`)
+                   : `✗ ${result.score} % correct`;
+  } else {
+    replicaLog[idx] = { expected: expectedText, spoken: '', score: 0, passed: false };
+  }
+
+  setState(S.IDLE, '→ Réplique suivante');
   highlightReplica(idx, false);
-  setTimeout(() => processReplica(idx + 1), 300);
+  setTimeout(() => processReplica(idx + 1), 400);
 }
 
 function finishSpeaking() {
@@ -2044,64 +2054,45 @@ function waitForPlayer(expectedText, index, revealed = false) {
 // ── Mode manuel/monologue : le STT écoute et évalue, mais l'avance est manuelle ──
 function waitForPlayerManual(expectedText, index, isRestart = false) {
   if (skipFlag || appState === S.PAUSED) return;
-  // Vérifier qu'on est toujours sur cette réplique
   const isMonologue = pendingMonologueIndex === index;
   const isManual    = pendingManualIndex    === index;
   if (!isMonologue && !isManual) return;
 
   transcriptAccum  = '';
   latestTranscript = '';
-  // Ne pas effacer le transcript affiché lors d'un redémarrage — l'utilisateur
-  // doit pouvoir lire ce qu'il a dit avant de cliquer "Réplique suivante"
-  if (!isRestart) document.getElementById('transcriptText').textContent = '—';
+  if (!isRestart) {
+    document.getElementById('transcriptText').textContent = '—';
+    document.getElementById('transcriptHint').textContent =
+      isManual ? 'Dites votre réplique, puis appuyez sur « Réplique suivante »'
+               : 'Lisez votre texte, puis appuyez sur « J\'ai terminé ma réplique »';
+  }
 
   startListening(expectedText, (transcript) => {
-    // Vérifier qu'on n'a pas déjà avancé (bouton cliqué pendant l'écoute)
     const stillPending = pendingMonologueIndex === index || pendingManualIndex === index;
     if (!stillPending) return;
 
-    const result = compareTexts(transcript, expectedText);
-
-    if (result === 'souffleur') {
+    // "ok texte" → lire la réplique à voix haute, puis reprendre l'écoute
+    if (compareTexts(transcript, expectedText) === 'souffleur') {
       stopListening();
       setState(S.SOUFFLEUR, '📖 Souffleur…');
       highlightReplica(index, false);
       speakSouffleur(expectedText, () => {
         if (skipFlag || appState === S.PAUSED) return;
-        const still2 = pendingMonologueIndex === index || pendingManualIndex === index;
-        if (!still2) return;
-        showErrorPanel(null, expectedText, index);
+        if (!(pendingMonologueIndex === index || pendingManualIndex === index)) return;
         const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
         setState(S.LISTENING, lbl);
         if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
         waitForPlayerManual(expectedText, index, true);
       });
-
-    } else if (result.match) {
-      stopListening();
-      hideErrorPanel();
-      replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: true };
-      document.getElementById('transcriptText').textContent = transcript;
-      document.getElementById('transcriptHint').textContent = result.score === 100 ? '✓ Parfait ! Cliquez le bouton pour continuer.' : `✓ Accepté (${result.score} %). Cliquez le bouton pour continuer.`;
-      const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
-      setState(S.LISTENING, lbl);
-      if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
-      // Continuer à écouter — l'utilisateur avance via le bouton
-      waitForPlayerManual(expectedText, index, true);
-
-    } else {
-      stopListening();
-      playError();
-      highlightReplica(index, false, true);
-      replicaLog[index] = { expected: expectedText, spoken: transcript, score: result.score, passed: false };
-      document.getElementById('transcriptText').textContent = transcript;
-      const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
-      setState(S.LISTENING, lbl);
-      if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
-      showErrorPanel(result.score, expectedText, index);
-      // Continuer à écouter — l'utilisateur avance via le bouton
-      waitForPlayerManual(expectedText, index, true);
+      return;
     }
+
+    // Sinon : afficher le transcript mais ne pas évaluer — l'évaluation se fait au clic du bouton
+    document.getElementById('transcriptText').textContent = transcript;
+    const lbl = pendingMonologueIndex === index ? '📖 Monologue' : '👆 À vous';
+    setState(S.LISTENING, lbl);
+    if (pendingManualIndex === index) document.getElementById('nextBtn').style.display = 'block';
+    waitForPlayerManual(expectedText, index, true);
   });
 }
 
